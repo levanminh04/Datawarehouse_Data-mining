@@ -1,0 +1,35 @@
+-- VanPhongDaiDien
+-- Total rows: 30
+
+INSERT INTO VanPhongDaiDien (MaThanhPho, TenThanhPho, DiaChiVP, Bang, ThoiGian) VALUES
+  (1, 'Barueri', 'Alameda Sousa, 43', 'SP', '2016-01-01'),
+  (2, 'Belem', 'Colônia de Rocha, 719', 'PA', '2016-01-01'),
+  (3, 'Belo Horizonte', 'Chácara Cunha', 'MG', '2016-01-01'),
+  (4, 'Brasilia', 'Trevo de Alves, 738', 'DF', '2016-01-01'),
+  (5, 'Campinas', 'Trecho Agatha Abreu, 66', 'SP', '2016-01-01'),
+  (6, 'Contagem', 'Favela Teixeira, 21', 'MG', '2016-01-01'),
+  (7, 'Curitiba', 'Morro Ferreira, 840', 'PR', '2016-01-01'),
+  (8, 'Florianopolis', 'Parque Barros, 649', 'SC', '2016-01-01'),
+  (9, 'Fortaleza', 'Campo Aparecida, 24', 'CE', '2016-01-01'),
+  (10, 'Goiania', 'Colônia Garcia, 67', 'GO', '2016-01-01'),
+  (11, 'Guarulhos', 'Morro Otto Rios, 31', 'SP', '2016-01-01'),
+  (12, 'Juiz De Fora', 'Feira de Castro, 56', 'MG', '2016-01-01'),
+  (13, 'Jundiai', 'Sítio de Câmara, 40', 'SP', '2016-01-01'),
+  (14, 'Mogi Das Cruzes', 'Largo Guerra, 41', 'SP', '2016-01-01'),
+  (15, 'Niteroi', 'Largo de Cunha, 86', 'RJ', '2016-01-01'),
+  (16, 'Nova Iguacu', 'Conjunto Thales Souza, 784', 'RJ', '2016-01-01'),
+  (17, 'Osasco', 'Núcleo Pedro Lucas Carvalho, 171', 'SP', '2016-01-01'),
+  (18, 'Porto Alegre', 'Distrito Pires, 26', 'RS', '2016-01-01'),
+  (19, 'Recife', 'Trevo Maria Helena Moura, 18', 'PE', '2016-01-01'),
+  (20, 'Ribeirao Preto', 'Condomínio de Rodrigues, 245', 'SP', '2016-01-01'),
+  (21, 'Rio De Janeiro', 'Esplanada Maria Abreu, 38', 'RJ', '2016-01-01'),
+  (22, 'Salvador', 'Vereda da Rosa, 393', 'BA', '2016-01-01'),
+  (23, 'Santo Andre', 'Setor Vasconcelos, 609', 'SP', '2016-01-01'),
+  (24, 'Santos', 'Condomínio Fonseca, 13', 'SP', '2016-01-01'),
+  (25, 'Sao Bernardo Do Campo', 'Chácara de Barros, 91', 'SP', '2016-01-01'),
+  (26, 'Sao Goncalo', 'Conjunto Ribeiro, 38', 'RJ', '2016-01-01'),
+  (27, 'Sao Jose Dos Campos', 'Trevo de Lima, 48', 'SP', '2016-01-01'),
+  (28, 'Sao Paulo', 'Passarela Evelyn Macedo, 471', 'SP', '2016-01-01'),
+  (29, 'Sorocaba', 'Loteamento Almeida, 483', 'SP', '2016-01-01'),
+  (30, 'Vitoria', 'Vereda Araújo', 'ES', '2016-01-01');
+
