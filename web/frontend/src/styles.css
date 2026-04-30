@@ -1,0 +1,127 @@
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: #f5f7fb;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #0b3d91 0%, #0f6ab4 100%);
+  padding: 0;
+  height: auto;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.app-menu {
+  background: transparent !important;
+  border-bottom: 0 !important;
+  min-width: 420px;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item:hover {
+  background: transparent !important;
+}
+
+.app-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item,
+.app-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item:hover,
+.app-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item:active,
+.app-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item-selected,
+.app-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item-selected:hover {
+  background: transparent !important;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item::after {
+  border-bottom-color: transparent !important;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item-selected {
+  background: transparent !important;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item-selected::after {
+  border-bottom-color: transparent !important;
+}
+
+.app-menu.ant-menu-horizontal > .ant-menu-item-selected .ant-menu-title-content {
+  border-bottom: 2px solid #ffffff;
+  padding-bottom: 2px;
+}
+
+.app-menu.ant-menu-horizontal > .menu-dashboard.ant-menu-item-selected .ant-menu-title-content {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page-card {
+  margin-top: 16px;
+}
+
+.dashboard-card .ant-card-head-wrapper {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.dashboard-card .ant-card-extra {
+  margin-inline-start: auto;
+  padding-inline-start: 28px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.row-error td {
+  background: #fff1f0 !important;
+}
+
+.ant-table-wrapper .ant-pagination {
+  display: flex;
+  width: 100%;
+}
+
+.ant-table-wrapper .ant-pagination .ant-pagination-total-text {
+  margin-right: auto !important;
+}
+
+@media (max-width: 900px) {
+  .app-header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-menu {
+    min-width: 100%;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
