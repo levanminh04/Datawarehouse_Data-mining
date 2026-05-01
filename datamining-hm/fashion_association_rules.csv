@@ -1,0 +1,23 @@
+Style_Cluster,antecedents,consequents,support,confidence,lift
+Classic Online,Nightwear,Underwear,0.019749066307241034,0.36966115589561416,1.625237214961541
+Classic Online,Underwear,Nightwear,0.019749066307241034,0.08682794232330657,1.625237214961541
+Classic Online,"Garment Upper body, Shoes","Garment Lower body, Garment Full body",0.01655664548727028,0.2394560983076972,1.376075650592854
+Classic Online,"Garment Lower body, Garment Full body","Garment Upper body, Shoes",0.01655664548727028,0.09514561070503477,1.376075650592854
+Classic Online,Nightwear,"Garment Upper body, Underwear",0.010704664759316581,0.20036890285558137,1.365061072349698
+Family/Moms,"Accessories, Garment Full body","Garment Upper body, Shoes",0.012800664577275989,0.18765568779407696,1.75050566391354
+Family/Moms,"Garment Upper body, Shoes","Accessories, Garment Full body",0.012800664577275989,0.11940824233885171,1.75050566391354
+Family/Moms,"Accessories, Garment Upper body, Garment Full body",Shoes,0.012800664577275989,0.24917309812568908,1.7075562576433236
+Family/Moms,Shoes,"Accessories, Garment Upper body, Garment Full body",0.012800664577275989,0.08772156812006729,1.7075562576433236
+Family/Moms,"Socks & Tights, Garment Full body","Garment Upper body, Shoes",0.01081826077106068,0.17817164179104478,1.6620357835689463
+Menswear,Nightwear,Underwear,0.012120992461270814,0.2875921375921376,1.595782316373002
+Menswear,Underwear,Nightwear,0.012120992461270814,0.0672565863188439,1.5957823163730018
+Menswear,Socks & Tights,Underwear,0.03581414133046144,0.2497833309258992,1.3859899848221469
+Menswear,Underwear,Socks & Tights,0.03581414133046144,0.198724394518344,1.3859899848221469
+Menswear,"Garment Upper body, Underwear","Garment Lower body, Socks & Tights",0.010609104465247286,0.08719148936170212,1.3646527949239629
+GenZ Trend,Nightwear,Underwear,0.01043313567140703,0.30814476922153533,1.6390531807113424
+GenZ Trend,Underwear,Nightwear,0.01043313567140703,0.05549490341897895,1.6390531807113422
+GenZ Trend,"Garment Lower body, Swimwear, Garment Upper body",Garment Full body,0.01766662737814122,0.45350687289705005,1.367118870454724
+GenZ Trend,Garment Full body,"Garment Lower body, Swimwear, Garment Upper body",0.01766662737814122,0.053256920918664276,1.367118870454724
+GenZ Trend,"Garment Upper body, Swimwear","Garment Lower body, Garment Full body",0.01766662737814122,0.25660059918239647,1.3595353257455425
+Sporty Active,Swimwear,Garment Full body,0.016783331767358828,0.19421038325631967,1.4161042110110544
+Sporty Active,Garment Full body,Swimwear,0.016783331767358828,0.12237732294253661,1.4161042110110544
