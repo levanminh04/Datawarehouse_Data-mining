@@ -59,8 +59,12 @@ CREATE INDEX IF NOT EXISTS idx_tx_date     ON transactions(t_dat);
 CREATE INDEX IF NOT EXISTS idx_tx_cust_date ON transactions(customer_id, t_dat);
 
 -- 4. Kết quả phân cụm (Layer 1 output) --------------------------------
+-- Note: KHÔNG dùng FK REFERENCES customers(customer_id) vì 3 bảng nguồn
+-- (customers/articles/transactions) đã được load sẵn KHÔNG có PRIMARY KEY,
+-- nên FK sẽ raise InvalidForeignKey. App tự đảm bảo customer_id valid khi
+-- INSERT (Layer 1 đọc trực tiếp từ customers nên không có ID lạ).
 CREATE TABLE IF NOT EXISTS customer_clusters (
-    customer_id          VARCHAR(64) PRIMARY KEY REFERENCES customers(customer_id),
+    customer_id          VARCHAR(64) PRIMARY KEY,
     cluster_id           SMALLINT NOT NULL,
     cluster_label        VARCHAR(40),     -- ví dụ "Classic Ladieswear"
     model_version        VARCHAR(40) NOT NULL,
