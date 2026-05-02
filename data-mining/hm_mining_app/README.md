@@ -14,13 +14,19 @@ Module này đáp ứng 2 yêu cầu mở rộng của cô được nêu ở **C
 
 ## Tiền đề
 
-DB Postgres đã được thành viên khác load sẵn 3 bảng H&M. Yêu cầu schema:
+DB Postgres remote do **levanminh04** set up đã có sẵn 3 bảng H&M (xem [README root](../../README.md) phần "DB connections"):
 
-- `customers` — `customer_id` VARCHAR PK
-- `articles` — `article_id` VARCHAR PK; phải có cột `index_group_name` và `product_group_name`
-- `transactions(t_dat, customer_id, article_id, price, sales_channel_id)` — có index trên `(customer_id, t_dat)`
+- `customers` — `customer_id` VARCHAR PK (≈1.37 triệu khách hàng)
+- `articles` — `article_id` VARCHAR PK; có `index_group_name`, `product_group_name` (≈105k SKU)
+- `transactions(t_dat, customer_id, article_id, price, sales_channel_id)` — có index trên `(customer_id, t_dat)` (≈31.8 triệu giao dịch)
 
-App này **không** tạo / chạm DDL của 3 bảng trên. Khi chạy `python -m scripts.init_db`, app chỉ tạo 2 bảng nội bộ (`model_registry`, `prediction_log`) bằng `CREATE TABLE IF NOT EXISTS` — idempotent.
+`.env.example` đã set sẵn `DATABASE_URL` trỏ vào DB remote — anh chỉ cần `cp .env.example .env` là chạy được. Không cần dump CSV về local.
+
+App **không** chạm DDL của 3 bảng trên. Khi chạy `python -m scripts.init_db`, app dùng `CREATE TABLE IF NOT EXISTS` cho **3 bảng nội bộ** (idempotent — không ảnh hưởng nếu đã tồn tại):
+
+- `customer_clusters` — output Layer 1 (cluster_id của mỗi khách)
+- `model_registry` — version history của các mô hình ML
+- `prediction_log` — log mọi response `/predict/*` để đo drift sau này
 
 ## Kiến trúc
 
@@ -39,20 +45,29 @@ Tất cả tính toán nặng (JOIN, AGG) đẩy xuống PostgreSQL bằng SQL �
 ## Cài đặt local
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+# 1. Vào thư mục app
+cd data-mining/hm_mining_app
+
+# 2. Venv + dependencies
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
+# 3. Config — .env.example đã trỏ sẵn vào DB remote, copy xong là chạy được
 cp .env.example .env
-# Sửa DATABASE_URL trong .env trỏ vào Postgres của nhóm
 
-python -m scripts.init_db          # tạo model_registry + prediction_log
+# 4. Tạo 3 bảng nội bộ (customer_clusters, model_registry, prediction_log)
+python -m scripts.init_db
+
+# 5. Khởi động app
 uvicorn app.main:app --reload --port 8000
 
-# Lần đầu phải train cả 3 lớp
+# 6. (Terminal khác) Train lần đầu — cần khoảng 5–15 phút trên 32M giao dịch
 curl -X POST http://localhost:8000/retrain/all
 ```
 
-App chạy tại <http://localhost:8000> (Dashboard) và <http://localhost:8000/docs> (Swagger).
+App chạy tại <http://localhost:8000> (Dashboard) và <http://localhost:8000/docs> (Swagger). Health check: <http://localhost:8000/health>.
+
+> **Lưu ý:** Phương án trên dùng DB remote `13.239.118.235` của nhóm. Yêu cầu mạng vào được AWS Sydney (ping/TCP 5432). Nếu lỗi connection, kiểm tra VPN/firewall hoặc đổi sang Postgres local theo dòng comment trong `.env.example`.
 
 ## API chính
 
