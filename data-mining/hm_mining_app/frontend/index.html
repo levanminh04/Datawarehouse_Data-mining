@@ -220,49 +220,166 @@
   <!-- ====================== TAB 2: SUY LUẬN ====================== -->
   <section x-show="tab === 'predict'" class="space-y-6">
 
-    <!-- Search box -->
+    <!-- Customer browser — bảng N khách / cụm để chọn cụ thể -->
     <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
-      <h3 class="font-semibold mb-3">Tra cứu khách hàng</h3>
+      <div class="flex items-baseline justify-between flex-wrap gap-2 mb-3">
+        <h3 class="font-semibold">Chọn khách hàng để tra cứu</h3>
+        <span class="text-xs text-mute-light dark:text-mute-dark">
+          <span x-show="sampleCustomers.length" x-text="`${sampleCustomers.length} khách mẫu (${samplePerCluster}/cụm)`"></span>
+          <span x-show="loading.samples" class="spinner text-brand-500 ml-2"></span>
+        </span>
+      </div>
 
-      <!-- Quick-pick chips theo cụm -->
-      <p class="text-xs text-mute-light dark:text-mute-dark mb-2">
-        Chọn nhanh 1 khách hàng mẫu theo từng cụm phong cách:
-      </p>
-      <div class="flex gap-2 flex-wrap mb-4" x-show="sampleCustomers.length">
-        <template x-for="s in sampleCustomers" :key="s.customer_id">
-          <button @click="pickSample(s)"
-            :class="`cluster-${s.cluster_id} text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-80 transition`"
-            x-text="s.cluster_label"></button>
+      <!-- 5 cluster tabs -->
+      <div class="flex gap-1 sm:gap-2 mb-3 border-b border-gray-200 dark:border-zinc-700 overflow-x-auto" x-show="sampleCustomers.length">
+        <template x-for="cid in [0,1,2,3,4]" :key="cid">
+          <button @click="browseCluster = cid"
+            :class="browseCluster === cid
+              ? `cluster-${cid} -mb-px border-b-2 border-current`
+              : 'border-b-2 border-transparent text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark'"
+            class="px-3 py-1.5 text-xs font-medium whitespace-nowrap transition rounded-t"
+            x-text="clusterName(cid)"></button>
         </template>
       </div>
-      <div x-show="!sampleCustomers.length && !loading.summary" class="text-xs text-amber-600 dark:text-amber-400 mb-3">
+
+      <!-- Customer table for selected cluster -->
+      <div class="overflow-x-auto" x-show="sampleCustomers.length">
+        <table class="w-full text-sm">
+          <thead class="text-xs text-mute-light dark:text-mute-dark uppercase tracking-wide">
+            <tr>
+              <th class="text-left py-2 pr-3">ID</th>
+              <th class="text-right py-2 px-2">Tuổi</th>
+              <th class="text-left py-2 px-2">Club</th>
+              <th class="text-right py-2 px-2">Số GD</th>
+              <th class="text-right py-2 px-2">Chi tiêu</th>
+              <th class="text-left py-2 pl-2">Mua cuối</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="c in sampleCustomers.filter(x => x.cluster_id === browseCluster)" :key="c.customer_id">
+              <tr class="border-t border-gray-100 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800/60 cursor-pointer transition"
+                  @click="pickSample(c)">
+                <td class="py-2 pr-3 font-mono text-xs" x-text="shortId(c.customer_id)"></td>
+                <td class="py-2 px-2 text-right" x-text="c.age ?? '—'"></td>
+                <td class="py-2 px-2 text-xs" x-text="c.club_member_status || '—'"></td>
+                <td class="py-2 px-2 text-right font-mono text-xs" x-text="c.n_transactions"></td>
+                <td class="py-2 px-2 text-right font-mono text-xs" x-text="'$'+(c.total_spent ?? 0).toFixed(2)"></td>
+                <td class="py-2 pl-2 text-xs" x-text="c.last_purchase || '—'"></td>
+                <td class="py-2 text-right">
+                  <span class="text-xs text-brand-700 dark:text-brand-100">→ Tra cứu</span>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!sampleCustomers.filter(x => x.cluster_id === browseCluster).length">
+              <td colspan="7" class="text-center py-4 text-xs text-mute-light dark:text-mute-dark italic">Không có mẫu cho cụm này.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div x-show="!sampleCustomers.length && !loading.samples" class="text-xs text-amber-600 dark:text-amber-400 mb-3">
         ⚠ Layer 1 chưa train hoặc <code>customer_clusters</code> rỗng — chưa có mẫu để chọn.
         Vào tab Tổng quan click "Retrain toàn bộ" trước.
       </div>
 
-      <!-- Manual ID input -->
-      <p class="text-xs text-mute-light dark:text-mute-dark mb-2">
-        Hoặc dán 1 <code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">customer_id</code> 64-ký-tự bất kỳ:
-      </p>
-      <div class="flex gap-2 flex-wrap">
-        <input
-          x-model="cidInput"
-          @keydown.enter="lookupCustomer()"
-          placeholder="customer_id (64 ký tự hex)"
-          class="flex-1 min-w-[260px] font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
-        <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
-          class="px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
-          <span x-show="!lookingUp">🔍 Tra cứu</span>
-          <span x-show="lookingUp">Đang load…</span>
-        </button>
+      <!-- Tải thêm + manual ID -->
+      <div class="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-700 space-y-2">
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          <span class="text-mute-light dark:text-mute-dark">Thêm mẫu:</span>
+          <template x-for="n in [3, 5, 10, 20]" :key="n">
+            <button @click="loadSampleCustomers(n)"
+              :class="samplePerCluster === n ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200'"
+              class="px-2.5 py-1 rounded text-xs transition" x-text="n + '/cụm'"></button>
+          </template>
+        </div>
+
+        <details class="text-xs">
+          <summary class="cursor-pointer text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
+            Hoặc paste 1 customer_id 64 ký tự bất kỳ
+          </summary>
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <input
+              x-model="cidInput"
+              @keydown.enter="lookupCustomer()"
+              placeholder="dán customer_id ở đây"
+              class="flex-1 min-w-[260px] font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+            <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
+              class="px-3 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
+              <span x-show="!lookingUp">🔍 Tra cứu</span>
+              <span x-show="lookingUp">…</span>
+            </button>
+          </div>
+        </details>
       </div>
-      <p x-show="cidInput" class="text-xs text-mute-light dark:text-mute-dark mt-2">
-        Đang tra cứu: <code class="font-mono" x-text="cidInput.length > 16 ? cidInput.slice(0,16)+'…'+cidInput.slice(-8) : cidInput"></code>
-      </p>
     </div>
 
     <!-- Results -->
     <div x-show="customerResult" class="space-y-4">
+
+      <!-- Customer profile card -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700"
+        x-show="customerProfile">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <span>👤</span> Hồ sơ khách hàng
+        </h3>
+        <template x-if="customerProfile">
+          <div class="grid sm:grid-cols-2 gap-4 text-sm">
+            <!-- Demographics -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Tuổi</span>
+                <span class="font-medium" x-text="customerProfile.demographics?.age ?? '— (không khai)'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Trạng thái club</span>
+                <span class="font-medium" x-text="customerProfile.demographics?.club_member_status || '—'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Đăng ký fashion news</span>
+                <span class="font-medium" x-text="customerProfile.demographics?.fashion_news_frequency || 'NONE'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Mua online</span>
+                <span class="font-medium" x-text="((customerProfile.stats?.pct_online ?? 0)*100).toFixed(0) + '%'"></span>
+              </div>
+            </div>
+            <!-- Stats -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Số giao dịch</span>
+                <span class="font-medium font-mono" x-text="customerProfile.stats?.n_transactions"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Tổng chi tiêu</span>
+                <span class="font-medium font-mono" x-text="'$' + (customerProfile.stats?.total_spent ?? 0).toFixed(2)"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Mua đầu tiên</span>
+                <span class="font-mono text-xs" x-text="customerProfile.stats?.first_purchase || '—'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-mute-light dark:text-mute-dark">Mua gần nhất</span>
+                <span class="font-mono text-xs" x-text="customerProfile.stats?.last_purchase || '—'"></span>
+              </div>
+            </div>
+          </div>
+        </template>
+        <!-- Top product groups bar -->
+        <template x-if="customerProfile?.top_product_groups?.length">
+          <div class="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700">
+            <p class="text-xs text-mute-light dark:text-mute-dark mb-2">Top sản phẩm đã mua:</p>
+            <div class="flex flex-wrap gap-1.5">
+              <template x-for="g in customerProfile.top_product_groups" :key="g.group_name">
+                <span class="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
+                  <strong x-text="g.group_name"></strong>
+                  <span class="text-mute-light dark:text-mute-dark ml-1" x-text="`(${g.n})`"></span>
+                </span>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
 
       <!-- Cluster card -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
@@ -535,13 +652,18 @@ function app() {
       cluster: true,
       models:  true,
       guide:   true,
+      samples: true,
     },
 
     // Predict state
     cidInput: '',
     customerResult: null,
+    customerProfile: null,
     lookingUp: false,
-    sampleCustomers: [],   // 1 mẫu / cụm — load 1 lần ở init
+    sampleCustomers: [],   // mẫu khách / cụm
+    samplePerCluster: 5,
+    browseCluster: 0,      // tab cụm đang xem trong browser
+    clusterLabels: {},     // {0: "Sporty Active", 1: "Menswear", ...}
 
     // Models state
     layerFilter: 'L1_KMEANS',
@@ -578,11 +700,29 @@ function app() {
       this.$watch('tab', t => this.onTabChange(t));
     },
 
-    async loadSampleCustomers() {
+    async loadSampleCustomers(perCluster) {
+      this.loading.samples = true;
+      const n = perCluster || this.samplePerCluster;
+      this.samplePerCluster = n;
       try {
-        const r = await fetch('/metrics/sample-customers?per_cluster=1');
-        if (r.ok) this.sampleCustomers = await r.json();
-      } catch(e) { /* silent — UI sẽ show warning nếu rỗng */ }
+        const r = await fetch(`/metrics/sample-customers?per_cluster=${n}`);
+        if (r.ok) {
+          this.sampleCustomers = await r.json();
+          // Cache tên cụm để dùng cho tab nav (kể cả khi clusterDist chưa load)
+          for (const c of this.sampleCustomers) {
+            this.clusterLabels[c.cluster_id] = c.cluster_label;
+          }
+        }
+      } catch(e) {}
+      finally { this.loading.samples = false; }
+    },
+
+    async loadCustomerProfile(customerId) {
+      try {
+        const r = await fetch(`/metrics/customer-profile/${customerId}`);
+        if (r.ok) this.customerProfile = await r.json();
+        else this.customerProfile = null;
+      } catch(e) { this.customerProfile = null; }
     },
 
     onTabChange(t) {
@@ -719,6 +859,16 @@ function app() {
       return ({ L1_KMEANS:'Layer 1 — K-Means', L2_APRIORI:'Layer 2 — Apriori', L3_RANDOMFOREST:'Layer 3 — Random Forest' })[layer] || layer;
     },
 
+    clusterName(cid) {
+      return this.clusterLabels[cid] || `Cụm ${cid}`;
+    },
+
+    shortId(id) {
+      // 64-char hash → "abc123de…45f6" (10 đầu + 4 cuối)
+      if (!id || id.length <= 16) return id;
+      return id.slice(0, 10) + '…' + id.slice(-4);
+    },
+
     formatMetricsHtml(layer, m) {
       if (!m) return '<span class="text-mute-light dark:text-mute-dark italic">chưa train</span>';
       if (layer === 'L1_KMEANS') return `<span class="font-mono">k=${m.n_clusters}, inertia=${m.inertia_sample?.toFixed(0)}</span>`;
@@ -741,6 +891,7 @@ function app() {
       if (!this.cidInput) return;
       this.lookingUp = true;
       this.customerResult = { cluster:null, recommend:null, will_buy:null };
+      this.customerProfile = null;
       const fetchOr = async (path) => {
         try {
           const r = await fetch(path);
@@ -748,12 +899,14 @@ function app() {
           return r.ok ? j : { detail: j.detail || `HTTP ${r.status}` };
         } catch(e) { return { detail: e.message }; }
       };
-      // Run 3 endpoints in parallel
-      const [cluster, recommend, will_buy] = await Promise.all([
+      // Run profile + 3 predict endpoints song song
+      const [profile, cluster, recommend, will_buy] = await Promise.all([
+        fetchOr(`/metrics/customer-profile/${this.cidInput}`),
         fetchOr(`/predict/cluster/${this.cidInput}`),
         fetchOr(`/predict/recommend/${this.cidInput}?top_k=5`),
         fetchOr(`/predict/will-buy/${this.cidInput}`),
       ]);
+      this.customerProfile = profile && !profile.detail ? profile : null;
       this.customerResult = { cluster, recommend, will_buy };
       this.lookingUp = false;
     },
