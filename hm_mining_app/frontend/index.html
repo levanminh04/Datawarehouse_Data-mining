@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>H&M Mining Dashboard</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --border: #e5e3dc;
+    --text: #2c2c2a; --muted: #5f5e5a;
+    --primary: #534ab7; --teal: #0f6e56; --amber: #ba7517; --red: #a32d2d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1a1a18; --card:#26262a; --border:#3a3a37; --text:#e6e4dd; --muted:#9c9a92; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 24px; font-weight: 500; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 800px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+          padding: 20px; }
+  .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
+  .stat { font-size: 28px; font-weight: 500; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn { background: var(--primary); color: white; border: none;
+         padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .btn:hover { opacity: 0.9; }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  input, select { padding: 8px 12px; border: 1px solid var(--border);
+                  border-radius: 6px; background: var(--card); color: var(--text);
+                  font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-weight: 500; color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px;
+          background: rgba(83,74,183,0.1); color: var(--primary); }
+  .pill.active { background: rgba(15,110,86,0.15); color: var(--teal); }
+  pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto;
+        font-size: 12px; margin: 0; }
+  .nav { display: flex; gap: 8px; margin-bottom: 24px; }
+  .nav button { background: none; border: none; padding: 8px 16px; cursor: pointer;
+                color: var(--muted); border-bottom: 2px solid transparent; font-size: 14px; }
+  .nav button.active { color: var(--text); border-bottom-color: var(--primary); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card);
+           border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;
+           font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container" x-data="app()" x-init="init()">
+
+  <header style="margin-bottom: 24px;">
+    <h1>H&amp;M Data Mining Dashboard</h1>
+    <p class="muted">Phân cụm phong cách • Luật kết hợp • Dự báo mua 7 ngày</p>
+  </header>
+
+  <nav class="nav">
+    <button :class="{active: tab==='overview'}" @click="tab='overview'">Tổng quan</button>
+    <button :class="{active: tab==='predict'}" @click="tab='predict'">Suy luận</button>
+    <button :class="{active: tab==='models'}" @click="tab='models'">Mô hình</button>
+    <button :class="{active: tab==='ingest'}" @click="tab='ingest'">Nạp dữ liệu</button>
+  </nav>
+
+  <!-- Tab: TỔNG QUAN -->
+  <div x-show="tab==='overview'">
+    <div class="grid grid-3" style="margin-bottom: 16px;">
+      <div class="card">
+        <div class="stat-label">Khách hàng</div>
+        <div class="stat" x-text="(summary.n_customers||0).toLocaleString()"></div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Giao dịch</div>
+        <div class="stat" x-text="(summary.n_transactions||0).toLocaleString()"></div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Đã phân cụm</div>
+        <div class="stat" x-text="(summary.n_clustered_customers||0).toLocaleString()"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Phân bố cụm phong cách</h3>
+        <canvas id="clusterChart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>Mô hình đang vận hành</h3>
+        <table>
+          <thead><tr><th>Layer</th><th>Version</th><th>Chỉ số chính</th></tr></thead>
+          <tbody>
+            <template x-for="(m, layer) in summary.active_models||{}" :key="layer">
+              <tr>
+                <td x-text="layer"></td>
+                <td><span class="pill active" x-text="m?.version || '—'"></span></td>
+                <td x-text="formatMetrics(layer, m?.metrics)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div style="margin-top: 12px;">
+          <button class="btn" @click="retrainAll()">Retrain toàn bộ ngay</button>
+          <span class="muted" style="margin-left: 8px;" x-text="retrainStatus"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: PREDICT -->
+  <div x-show="tab==='predict'" class="grid grid-2">
+    <div class="card">
+      <h3>Phân loại khách hàng</h3>
+      <div class="row">
+        <input type="text" x-model="cidInput" placeholder="customer_id" style="flex:1" />
+        <button class="btn" @click="lookupCustomer()">Tra cứu</button>
+      </div>
+      <div x-show="customerResult" style="margin-top: 16px;">
+        <pre x-text="JSON.stringify(customerResult, null, 2)"></pre>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Hướng dẫn dùng API</h3>
+      <p class="muted">Có thể gọi trực tiếp từ Postman / curl:</p>
+      <pre>GET  /predict/cluster/{customer_id}
+GET  /predict/recommend/{customer_id}
+GET  /predict/will-buy/{customer_id}
+
+POST /ingest/customer
+POST /ingest/transactions
+POST /retrain/all</pre>
+      <a href="/docs" target="_blank" style="color: var(--primary); font-size: 13px;">Mở Swagger UI →</a>
+    </div>
+  </div>
+
+  <!-- Tab: MODELS -->
+  <div x-show="tab==='models'">
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="row" style="justify-content: space-between;">
+        <h3 style="margin: 0;">Lịch sử các phiên bản mô hình</h3>
+        <select x-model="layerFilter" @change="loadModels()">
+          <option value="L1_KMEANS">L1 KMeans</option>
+          <option value="L2_APRIORI">L2 Apriori</option>
+          <option value="L3_RANDOMFOREST">L3 Random Forest</option>
+        </select>
+      </div>
+      <table style="margin-top: 12px;">
+        <thead><tr><th>Version</th><th>Ngày</th><th>Mẫu</th><th>Cutoff</th><th>Active</th><th>Metrics</th></tr></thead>
+        <tbody>
+          <template x-for="m in modelsList" :key="m.version">
+            <tr>
+              <td x-text="m.version"></td>
+              <td x-text="m.created_at?.slice(0,16)?.replace('T',' ')"></td>
+              <td x-text="(m.n_samples_train||0).toLocaleString()"></td>
+              <td x-text="m.cutoff_date || '—'"></td>
+              <td><span class="pill" :class="{active: m.is_active}" x-text="m.is_active ? 'ACTIVE' : ''"></span></td>
+              <td><pre style="max-width: 300px;" x-text="JSON.stringify(m.metrics, null, 1)"></pre></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: INGEST -->
+  <div x-show="tab==='ingest'" class="grid grid-2">
+    <div class="card">
+      <h3>Tạo / cập nhật khách hàng</h3>
+      <div class="row" style="flex-direction: column; align-items: stretch;">
+        <input x-model="newCust.customer_id" placeholder="customer_id" />
+        <input x-model.number="newCust.age" type="number" placeholder="age" />
+        <input x-model="newCust.club_member_status" placeholder="club_member_status (ACTIVE/...)" />
+        <button class="btn" @click="ingestCustomer()">POST /ingest/customer</button>
+      </div>
+      <pre x-show="ingestResult" x-text="ingestResult" style="margin-top: 12px;"></pre>
+    </div>
+    <div class="card">
+      <h3>Nạp giao dịch (JSON batch)</h3>
+      <textarea x-model="txJson" rows="10"
+                style="width: 100%; padding: 10px; font-family: monospace; font-size: 12px;
+                       border: 1px solid var(--border); border-radius: 6px;
+                       background: var(--card); color: var(--text);"></textarea>
+      <button class="btn" @click="ingestTx()" style="margin-top: 8px;">POST /ingest/transactions</button>
+      <pre x-show="txResult" x-text="txResult" style="margin-top: 12px;"></pre>
+    </div>
+  </div>
+
+  <div class="toast" x-show="toast" x-text="toast" x-transition></div>
+</div>
+
+<script>
+function app() {
+  return {
+    tab: 'overview',
+    summary: {},
+    clusterDist: [],
+    modelsList: [],
+    layerFilter: 'L1_KMEANS',
+    cidInput: '',
+    customerResult: null,
+    newCust: { customer_id: '', age: null, club_member_status: 'ACTIVE' },
+    ingestResult: '',
+    txJson: JSON.stringify({transactions: [
+      {t_dat: '2024-01-15', customer_id: 'demo_001', article_id: '0108775015',
+       price: 0.025, sales_channel_id: 2}
+    ]}, null, 2),
+    txResult: '',
+    retrainStatus: '',
+    toast: '',
+
+    async init() {
+      await this.loadSummary();
+      await this.loadCluster();
+      await this.loadModels();
+    },
+    async loadSummary() {
+      this.summary = await fetch('/metrics/summary').then(r => r.json());
+    },
+    async loadCluster() {
+      this.clusterDist = await fetch('/metrics/cluster-distribution').then(r => r.json());
+      this.renderClusterChart();
+    },
+    renderClusterChart() {
+      const ctx = document.getElementById('clusterChart');
+      if (!ctx) return;
+      if (this.chart) this.chart.destroy();
+      this.chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: this.clusterDist.map(d => d.cluster_label || `Cụm ${d.cluster_id}`),
+          datasets: [{ data: this.clusterDist.map(d => d.n),
+                       backgroundColor: ['#534ab7','#0f6e56','#ba7517','#a32d2d','#993c1d','#3a3a37'] }]
+        },
+        options: { plugins: { legend: { display: false } },
+                   scales: { y: { beginAtZero: true } } }
+      });
+    },
+    async loadModels() {
+      this.modelsList = await fetch(`/metrics/models/${this.layerFilter}`).then(r => r.json());
+    },
+    formatMetrics(layer, m) {
+      if (!m) return '—';
+      if (layer === 'L1_KMEANS') return `inertia=${m.inertia_sample?.toFixed(0)}, k=${m.n_clusters}`;
+      if (layer === 'L2_APRIORI') return `${m.total_rules} luật`;
+      if (layer === 'L3_RANDOMFOREST') return `AUC=${m.auc?.toFixed(3)}, recall1=${m.recall_class1?.toFixed(2)}`;
+      return JSON.stringify(m).slice(0, 60);
+    },
+    async lookupCustomer() {
+      if (!this.cidInput) return;
+      const out = {};
+      try { out.cluster = await fetch(`/predict/cluster/${this.cidInput}`).then(r => r.json()); }
+      catch(e){}
+      try { out.recommend = await fetch(`/predict/recommend/${this.cidInput}`).then(r => r.json()); }
+      catch(e){}
+      try { out.will_buy = await fetch(`/predict/will-buy/${this.cidInput}`).then(r => r.json()); }
+      catch(e){}
+      this.customerResult = out;
+    },
+    async retrainAll() {
+      this.retrainStatus = 'Đang chạy ngầm...';
+      const r = await fetch('/retrain/all', { method: 'POST' }).then(r => r.json());
+      this.retrainStatus = `Đã xếp lịch ${r.layers?.join(', ')}. Refresh lại sau vài phút.`;
+      this.showToast('Retrain đang chạy — refresh lại sau');
+    },
+    async ingestCustomer() {
+      const r = await fetch('/ingest/customer', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(this.newCust)
+      }).then(r => r.json());
+      this.ingestResult = JSON.stringify(r, null, 2);
+    },
+    async ingestTx() {
+      const body = JSON.parse(this.txJson);
+      const r = await fetch('/ingest/transactions', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(r => r.json());
+      this.txResult = JSON.stringify(r, null, 2);
+      this.loadSummary();
+    },
+    showToast(msg) {
+      this.toast = msg;
+      setTimeout(() => this.toast = '', 3000);
+    }
+  };
+}
+</script>
+</body>
+</html>
