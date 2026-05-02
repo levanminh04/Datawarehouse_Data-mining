@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "db": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://user2:datamining@13.239.118.235:5432/data-mining"
+      ],
+      "env": {}
+    }
+  }
+}
