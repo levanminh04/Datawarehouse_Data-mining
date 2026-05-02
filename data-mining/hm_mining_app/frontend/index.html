@@ -3,292 +3,711 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>H&M Mining Dashboard</title>
+<title>H&M Mining Dashboard — Nhóm 01</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'media',
+    theme: {
+      extend: {
+        colors: {
+          brand:   { 50:'#f5f4ff', 100:'#ebe9ff', 500:'#534ab7', 600:'#453cad', 700:'#3a3193' },
+          surface: { light:'#ffffff', dark:'#26262a' },
+          ink:     { light:'#2c2c2a', dark:'#e6e4dd' },
+          mute:    { light:'#5f5e5a', dark:'#9c9a92' },
+        },
+        boxShadow: { card: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04)' }
+      }
+    }
+  }
+</script>
+
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
 <style>
-  :root {
-    --bg: #f7f7f5; --card: #ffffff; --border: #e5e3dc;
-    --text: #2c2c2a; --muted: #5f5e5a;
-    --primary: #534ab7; --teal: #0f6e56; --amber: #ba7517; --red: #a32d2d;
-  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  [x-cloak] { display: none !important; }
+  /* Cluster pill colors */
+  .cluster-0 { background: rgba(186,117,23,0.12);  color: #ba7517; }  /* Sporty Active */
+  .cluster-1 { background: rgba(15,110,86,0.12);   color: #0f6e56; }  /* Menswear */
+  .cluster-2 { background: rgba(83,74,183,0.12);   color: #534ab7; }  /* GenZ Trend */
+  .cluster-3 { background: rgba(163,45,45,0.12);   color: #a32d2d; }  /* Family/Moms */
+  .cluster-4 { background: rgba(82,40,100,0.12);   color: #582864; }  /* Classic Ladieswear */
+
+  /* Markdown content tweaks */
+  .prose-vi h1 { font-size:1.875rem; font-weight:600; margin: 1.5rem 0 0.75rem; }
+  .prose-vi h2 { font-size:1.375rem; font-weight:600; margin: 1.5rem 0 0.5rem; padding-top:0.5rem; border-top:1px solid #e5e7eb; }
+  .prose-vi h3 { font-size:1.125rem; font-weight:600; margin: 1rem 0 0.4rem; }
+  .prose-vi p, .prose-vi li { line-height: 1.65; }
+  .prose-vi code { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 4px; font-size: 0.875em; }
+  .prose-vi pre { background: #1a1a18; color: #e6e4dd; padding: 12px 16px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+  .prose-vi pre code { background: transparent; padding: 0; color: inherit; }
+  .prose-vi table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9em; }
+  .prose-vi th, .prose-vi td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+  .prose-vi th { background: rgba(0,0,0,0.03); font-weight: 600; }
+  .prose-vi ul, .prose-vi ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .prose-vi blockquote { border-left: 3px solid #534ab7; padding-left: 1rem; color: #5f5e5a; margin: 1rem 0; }
+  .prose-vi a { color: #534ab7; text-decoration: underline; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1a1a18; --card:#26262a; --border:#3a3a37; --text:#e6e4dd; --muted:#9c9a92; }
+    .prose-vi h2 { border-top-color: #3a3a37; }
+    .prose-vi th, .prose-vi td { border-color: #3a3a37; }
+    .prose-vi th { background: rgba(255,255,255,0.03); }
+    .prose-vi code { background: rgba(255,255,255,0.08); }
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-         background: var(--bg); color: var(--text); line-height: 1.5; }
-  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-  h1 { font-size: 24px; font-weight: 500; margin: 0 0 4px; }
-  .muted { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; gap: 16px; }
-  .grid-3 { grid-template-columns: repeat(3, 1fr); }
-  .grid-2 { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 800px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-          padding: 20px; }
-  .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
-  .stat { font-size: 28px; font-weight: 500; }
-  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .btn { background: var(--primary); color: white; border: none;
-         padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-  .btn:hover { opacity: 0.9; }
-  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-  input, select { padding: 8px 12px; border: 1px solid var(--border);
-                  border-radius: 6px; background: var(--card); color: var(--text);
-                  font-size: 13px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { font-weight: 500; color: var(--muted); }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px;
-          background: rgba(83,74,183,0.1); color: var(--primary); }
-  .pill.active { background: rgba(15,110,86,0.15); color: var(--teal); }
-  pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto;
-        font-size: 12px; margin: 0; }
-  .nav { display: flex; gap: 8px; margin-bottom: 24px; }
-  .nav button { background: none; border: none; padding: 8px 16px; cursor: pointer;
-                color: var(--muted); border-bottom: 2px solid transparent; font-size: 14px; }
-  .nav button.active { color: var(--text); border-bottom-color: var(--primary); }
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card);
-           border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;
-           font-size: 13px; }
 </style>
 </head>
-<body>
-<div class="container" x-data="app()" x-init="init()">
 
-  <header style="margin-bottom: 24px;">
-    <h1>H&amp;M Data Mining Dashboard</h1>
-    <p class="muted">Phân cụm phong cách • Luật kết hợp • Dự báo mua 7 ngày</p>
+<body class="bg-gray-50 dark:bg-zinc-900 text-ink-light dark:text-ink-dark min-h-screen">
+<div x-data="app()" x-init="init()" x-cloak class="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+
+  <!-- HEADER -->
+  <header class="mb-6">
+    <div class="flex items-baseline gap-3 flex-wrap">
+      <h1 class="text-2xl sm:text-3xl font-semibold">H&amp;M Data Mining Dashboard</h1>
+      <span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-700/20">Nhóm 01 — KDL & KPDL</span>
+    </div>
+    <p class="text-sm text-mute-light dark:text-mute-dark mt-1">
+      Phân cụm phong cách (K-Means) • Luật kết hợp (Apriori) • Dự báo mua 7 ngày (Random Forest)
+    </p>
   </header>
 
-  <nav class="nav">
-    <button :class="{active: tab==='overview'}" @click="tab='overview'">Tổng quan</button>
-    <button :class="{active: tab==='predict'}" @click="tab='predict'">Suy luận</button>
-    <button :class="{active: tab==='models'}" @click="tab='models'">Mô hình</button>
-    <button :class="{active: tab==='ingest'}" @click="tab='ingest'">Nạp dữ liệu</button>
+  <!-- TAB NAV -->
+  <nav class="flex gap-1 sm:gap-2 mb-6 border-b border-gray-200 dark:border-zinc-700 overflow-x-auto">
+    <template x-for="t in tabs" :key="t.id">
+      <button
+        @click="tab = t.id"
+        :class="tab === t.id
+          ? 'border-brand-500 text-brand-700 dark:text-brand-100'
+          : 'border-transparent text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark'"
+        class="px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition"
+        x-text="t.label">
+      </button>
+    </template>
   </nav>
 
-  <!-- Tab: TỔNG QUAN -->
-  <div x-show="tab==='overview'">
-    <div class="grid grid-3" style="margin-bottom: 16px;">
-      <div class="card">
-        <div class="stat-label">Khách hàng</div>
-        <div class="stat" x-text="(summary.n_customers||0).toLocaleString()"></div>
-      </div>
-      <div class="card">
-        <div class="stat-label">Giao dịch</div>
-        <div class="stat" x-text="(summary.n_transactions||0).toLocaleString()"></div>
-      </div>
-      <div class="card">
-        <div class="stat-label">Đã phân cụm</div>
-        <div class="stat" x-text="(summary.n_clustered_customers||0).toLocaleString()"></div>
-      </div>
+  <!-- ====================== TAB 1: TỔNG QUAN ====================== -->
+  <section x-show="tab === 'overview'" class="space-y-6">
+
+    <!-- 4 stat cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <template x-for="s in overviewStats" :key="s.label">
+        <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-card border border-gray-100 dark:border-zinc-700">
+          <div class="text-xs text-mute-light dark:text-mute-dark" x-text="s.label"></div>
+          <div class="text-2xl sm:text-3xl font-semibold mt-1" x-text="s.value"></div>
+          <div class="text-xs text-mute-light dark:text-mute-dark mt-1" x-text="s.hint"></div>
+        </div>
+      </template>
     </div>
 
-    <div class="grid grid-2">
-      <div class="card">
-        <h3>Phân bố cụm phong cách</h3>
-        <canvas id="clusterChart" height="200"></canvas>
+    <!-- Báo cáo card -->
+    <div class="bg-brand-500/[0.04] dark:bg-brand-500/[0.08] border border-brand-500/20 rounded-xl p-5">
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+        <span class="text-lg">🎯</span> Hệ thống đáp ứng yêu cầu mở rộng của cô (Chương 5.3)
+      </h3>
+      <ul class="space-y-1.5 text-sm">
+        <li><strong class="text-brand-700 dark:text-brand-100">Thu thập liên tục:</strong> endpoint <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">POST /ingest/transactions</code> — gửi giao dịch mới qua HTTP, tự ghi vào <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">transactions</code>. Lần huấn luyện kế tiếp tự học từ giao dịch này.</li>
+        <li><strong class="text-brand-700 dark:text-brand-100">Học liên tục:</strong> APScheduler retrain định kỳ • mỗi version lưu vào <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">model_registry</code> • predict luôn dùng <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">is_active=TRUE</code> (zero-downtime).</li>
+      </ul>
+    </div>
+
+    <!-- Cluster chart + active models side by side -->
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3">Phân bố khách hàng theo cụm phong cách</h3>
+        <canvas id="clusterChart" height="220"></canvas>
+        <p class="text-xs text-mute-light dark:text-mute-dark mt-3">
+          Layer 1 K-Means trên 7 đặc trưng Fashion DNA — k=5 (chọn theo Elbow, mục 4.1.2).
+        </p>
       </div>
-      <div class="card">
-        <h3>Mô hình đang vận hành</h3>
-        <table>
-          <thead><tr><th>Layer</th><th>Version</th><th>Chỉ số chính</th></tr></thead>
-          <tbody>
-            <template x-for="(m, layer) in summary.active_models||{}" :key="layer">
-              <tr>
-                <td x-text="layer"></td>
-                <td><span class="pill active" x-text="m?.version || '—'"></span></td>
-                <td x-text="formatMetrics(layer, m?.metrics)"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-        <div style="margin-top: 12px;">
-          <button class="btn" @click="retrainAll()">Retrain toàn bộ ngay</button>
-          <span class="muted" style="margin-left: 8px;" x-text="retrainStatus"></span>
+
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <h3 class="font-semibold">Mô hình đang vận hành</h3>
+          <button @click="retrainAll()"
+            :disabled="retraining"
+            class="text-xs px-3 py-1.5 rounded-md bg-brand-500 hover:bg-brand-600 text-white disabled:opacity-50 disabled:cursor-wait transition">
+            <span x-show="!retraining">⟳ Retrain toàn bộ</span>
+            <span x-show="retraining">Đang xếp lịch…</span>
+          </button>
+        </div>
+        <div class="space-y-2.5">
+          <template x-for="(m, layer) in (summary.active_models || {})" :key="layer">
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700">
+              <div>
+                <div class="text-sm font-medium" x-text="layerName(layer)"></div>
+                <div class="text-xs text-mute-light dark:text-mute-dark" x-text="m?.version || 'chưa train'"></div>
+              </div>
+              <div class="text-right text-xs" x-html="formatMetricsHtml(layer, m?.metrics)"></div>
+            </div>
+          </template>
+          <p x-show="retrainStatus" class="text-xs text-mute-light dark:text-mute-dark italic" x-text="retrainStatus"></p>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Tab: PREDICT -->
-  <div x-show="tab==='predict'" class="grid grid-2">
-    <div class="card">
-      <h3>Phân loại khách hàng</h3>
-      <div class="row">
-        <input type="text" x-model="cidInput" placeholder="customer_id" style="flex:1" />
-        <button class="btn" @click="lookupCustomer()">Tra cứu</button>
-      </div>
-      <div x-show="customerResult" style="margin-top: 16px;">
-        <pre x-text="JSON.stringify(customerResult, null, 2)"></pre>
+  <!-- ====================== TAB 2: SUY LUẬN ====================== -->
+  <section x-show="tab === 'predict'" class="space-y-6">
+
+    <!-- Search box -->
+    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+      <h3 class="font-semibold mb-3">Tra cứu khách hàng</h3>
+      <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
+        Nhập 1 <code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">customer_id</code> thật từ DB → 3 layer cùng trả lời. Chưa có ID? Click "Lấy ID mẫu".
+      </p>
+      <div class="flex gap-2 flex-wrap">
+        <input
+          x-model="cidInput"
+          @keydown.enter="lookupCustomer()"
+          placeholder="customer_id (64 ký tự hex)"
+          class="flex-1 min-w-[260px] font-mono text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+        <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
+          class="px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
+          <span x-show="!lookingUp">🔍 Tra cứu</span>
+          <span x-show="lookingUp">Đang load…</span>
+        </button>
+        <button @click="loadSampleId()" class="px-3 py-2 rounded-md text-sm text-brand-700 dark:text-brand-100 hover:bg-brand-500/10 transition">
+          🎲 Lấy ID mẫu
+        </button>
       </div>
     </div>
-    <div class="card">
-      <h3>Hướng dẫn dùng API</h3>
-      <p class="muted">Có thể gọi trực tiếp từ Postman / curl:</p>
-      <pre>GET  /predict/cluster/{customer_id}
-GET  /predict/recommend/{customer_id}
-GET  /predict/will-buy/{customer_id}
 
-POST /ingest/customer
-POST /ingest/transactions
-POST /retrain/all</pre>
-      <a href="/docs" target="_blank" style="color: var(--primary); font-size: 13px;">Mở Swagger UI →</a>
+    <!-- Results -->
+    <div x-show="customerResult" class="space-y-4">
+
+      <!-- Cluster card -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <span>🎨</span> Cụm phong cách (Layer 1)
+        </h3>
+        <template x-if="customerResult?.cluster && !customerResult.cluster.detail">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span :class="`cluster-${customerResult.cluster.cluster_id} px-3 py-1.5 rounded-full text-sm font-medium`"
+              x-text="customerResult.cluster.cluster_label"></span>
+            <span class="text-sm text-mute-light dark:text-mute-dark">
+              cluster_id = <span x-text="customerResult.cluster.cluster_id" class="font-mono"></span>
+            </span>
+            <span class="text-xs text-mute-light dark:text-mute-dark ml-auto">
+              model: <code x-text="customerResult.cluster.model_version"></code>
+            </span>
+          </div>
+        </template>
+        <template x-if="customerResult?.cluster?.detail">
+          <p class="text-sm text-red-600" x-text="customerResult.cluster.detail"></p>
+        </template>
+      </div>
+
+      <!-- Recommendations card -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <span>🛍️</span> Gợi ý cross-sell (Layer 2 — Apriori per cụm)
+        </h3>
+        <template x-if="customerResult?.recommend?.recommendations?.length">
+          <table class="w-full text-sm">
+            <thead class="text-xs text-mute-light dark:text-mute-dark uppercase tracking-wide">
+              <tr>
+                <th class="text-left py-2">#</th>
+                <th class="text-left py-2">Sản phẩm gợi ý</th>
+                <th class="text-left py-2">Vì khách đã mua</th>
+                <th class="text-right py-2">Confidence</th>
+                <th class="text-right py-2">Lift</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(r, i) in customerResult.recommend.recommendations" :key="i">
+                <tr class="border-t border-gray-100 dark:border-zinc-700">
+                  <td class="py-2 text-mute-light dark:text-mute-dark" x-text="i+1"></td>
+                  <td class="py-2 font-medium" x-text="r.recommend"></td>
+                  <td class="py-2 text-xs text-mute-light dark:text-mute-dark" x-text="(r.from_items||[]).join(' + ')"></td>
+                  <td class="py-2 text-right">
+                    <div class="inline-flex items-center gap-2 justify-end w-full">
+                      <div class="w-20 h-1.5 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-brand-500" :style="`width: ${(r.confidence*100).toFixed(0)}%`"></div>
+                      </div>
+                      <span class="text-xs font-mono w-10 text-right" x-text="(r.confidence*100).toFixed(1) + '%'"></span>
+                    </div>
+                  </td>
+                  <td class="py-2 text-right font-mono text-xs" x-text="r.lift?.toFixed(2)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </template>
+        <template x-if="customerResult?.recommend && !customerResult.recommend.recommendations?.length">
+          <p class="text-sm text-mute-light dark:text-mute-dark italic">
+            Không có luật kết hợp khớp với basket gần đây của khách này (giỏ hàng có thể quá ít sản phẩm).
+          </p>
+        </template>
+      </div>
+
+      <!-- Will-buy card -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3 flex items-center gap-2">
+          <span>📊</span> Xác suất mua trong 7 ngày tới (Layer 3 — Random Forest)
+        </h3>
+        <template x-if="customerResult?.will_buy && !customerResult.will_buy.detail">
+          <div>
+            <div class="flex items-baseline gap-3 mb-2">
+              <span class="text-3xl font-semibold" x-text="(customerResult.will_buy.proba * 100).toFixed(1) + '%'"></span>
+              <span class="text-sm" :class="customerResult.will_buy.will_buy ? 'text-green-600' : 'text-mute-light dark:text-mute-dark'"
+                x-text="customerResult.will_buy.will_buy ? '→ Marketing nên target' : '→ Khả năng mua thấp'"></span>
+            </div>
+            <div class="w-full h-3 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+              <div class="h-full transition-all"
+                :class="customerResult.will_buy.proba >= 0.5 ? 'bg-green-500' : 'bg-brand-500/60'"
+                :style="`width: ${(customerResult.will_buy.proba * 100).toFixed(0)}%`"></div>
+            </div>
+            <div class="flex justify-between text-xs text-mute-light dark:text-mute-dark mt-1.5">
+              <span>0% (chắc chắn không mua)</span>
+              <span class="text-mute-light dark:text-mute-dark">model: <code x-text="customerResult.will_buy.model_version"></code></span>
+              <span>100% (chắc chắn mua)</span>
+            </div>
+          </div>
+        </template>
+        <template x-if="customerResult?.will_buy?.detail">
+          <p class="text-sm text-red-600" x-text="customerResult.will_buy.detail"></p>
+        </template>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Tab: MODELS -->
-  <div x-show="tab==='models'">
-    <div class="card" style="margin-bottom: 16px;">
-      <div class="row" style="justify-content: space-between;">
-        <h3 style="margin: 0;">Lịch sử các phiên bản mô hình</h3>
-        <select x-model="layerFilter" @change="loadModels()">
-          <option value="L1_KMEANS">L1 KMeans</option>
-          <option value="L2_APRIORI">L2 Apriori</option>
-          <option value="L3_RANDOMFOREST">L3 Random Forest</option>
+  <!-- ====================== TAB 3: MÔ HÌNH ====================== -->
+  <section x-show="tab === 'models'" class="space-y-6">
+
+    <div class="grid lg:grid-cols-2 gap-4">
+
+      <!-- L3 Feature Importance -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3">Feature importance (Layer 3)</h3>
+        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
+          Verify với Chương 4.3.3 — RFM (recency, frequency, monetary) chiếm phần lớn trọng số.
+        </p>
+        <canvas id="featureImportanceChart" height="240"></canvas>
+      </div>
+
+      <!-- L2 Rules per cluster -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-3">Số luật Apriori theo cụm</h3>
+        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
+          Mỗi cụm chạy Apriori riêng (Segment-then-Mine — mục 4.2.2). Family/Moms thường cao nhất.
+        </p>
+        <canvas id="rulesPerClusterChart" height="240"></canvas>
+      </div>
+    </div>
+
+    <!-- Version history -->
+    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+      <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <h3 class="font-semibold">Lịch sử các phiên bản</h3>
+        <select x-model="layerFilter" @change="loadModels()"
+          class="text-sm px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800">
+          <option value="L1_KMEANS">L1 — K-Means</option>
+          <option value="L2_APRIORI">L2 — Apriori</option>
+          <option value="L3_RANDOMFOREST">L3 — Random Forest</option>
         </select>
       </div>
-      <table style="margin-top: 12px;">
-        <thead><tr><th>Version</th><th>Ngày</th><th>Mẫu</th><th>Cutoff</th><th>Active</th><th>Metrics</th></tr></thead>
-        <tbody>
-          <template x-for="m in modelsList" :key="m.version">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs text-mute-light dark:text-mute-dark uppercase tracking-wide border-b border-gray-200 dark:border-zinc-700">
             <tr>
-              <td x-text="m.version"></td>
-              <td x-text="m.created_at?.slice(0,16)?.replace('T',' ')"></td>
-              <td x-text="(m.n_samples_train||0).toLocaleString()"></td>
-              <td x-text="m.cutoff_date || '—'"></td>
-              <td><span class="pill" :class="{active: m.is_active}" x-text="m.is_active ? 'ACTIVE' : ''"></span></td>
-              <td><pre style="max-width: 300px;" x-text="JSON.stringify(m.metrics, null, 1)"></pre></td>
+              <th class="text-left py-2 px-2">Version</th>
+              <th class="text-left py-2 px-2">Tạo lúc</th>
+              <th class="text-right py-2 px-2">Số mẫu train</th>
+              <th class="text-left py-2 px-2">Cutoff</th>
+              <th class="text-center py-2 px-2">Active</th>
+              <th class="text-left py-2 px-2">Chỉ số chính</th>
             </tr>
-          </template>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tab: INGEST -->
-  <div x-show="tab==='ingest'" class="grid grid-2">
-    <div class="card">
-      <h3>Tạo / cập nhật khách hàng</h3>
-      <div class="row" style="flex-direction: column; align-items: stretch;">
-        <input x-model="newCust.customer_id" placeholder="customer_id" />
-        <input x-model.number="newCust.age" type="number" placeholder="age" />
-        <input x-model="newCust.club_member_status" placeholder="club_member_status (ACTIVE/...)" />
-        <button class="btn" @click="ingestCustomer()">POST /ingest/customer</button>
+          </thead>
+          <tbody>
+            <template x-for="m in modelsList" :key="m.version">
+              <tr class="border-b border-gray-100 dark:border-zinc-800">
+                <td class="py-2 px-2 font-mono text-xs" x-text="m.version"></td>
+                <td class="py-2 px-2 text-xs" x-text="m.created_at?.slice(0,16)?.replace('T',' ')"></td>
+                <td class="py-2 px-2 text-right font-mono text-xs" x-text="(m.n_samples_train||0).toLocaleString()"></td>
+                <td class="py-2 px-2 text-xs" x-text="m.cutoff_date || '—'"></td>
+                <td class="py-2 px-2 text-center">
+                  <span x-show="m.is_active" class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-300">ACTIVE</span>
+                  <span x-show="!m.is_active" class="text-xs text-mute-light dark:text-mute-dark">—</span>
+                </td>
+                <td class="py-2 px-2 text-xs" x-html="formatMetricsHtml(layerFilter, m.metrics)"></td>
+              </tr>
+            </template>
+            <tr x-show="!modelsList.length"><td colspan="6" class="text-center py-6 text-sm text-mute-light dark:text-mute-dark italic">Chưa có version nào — click "Retrain toàn bộ" ở tab Tổng quan.</td></tr>
+          </tbody>
+        </table>
       </div>
-      <pre x-show="ingestResult" x-text="ingestResult" style="margin-top: 12px;"></pre>
     </div>
-    <div class="card">
-      <h3>Nạp giao dịch (JSON batch)</h3>
-      <textarea x-model="txJson" rows="10"
-                style="width: 100%; padding: 10px; font-family: monospace; font-size: 12px;
-                       border: 1px solid var(--border); border-radius: 6px;
-                       background: var(--card); color: var(--text);"></textarea>
-      <button class="btn" @click="ingestTx()" style="margin-top: 8px;">POST /ingest/transactions</button>
-      <pre x-show="txResult" x-text="txResult" style="margin-top: 12px;"></pre>
-    </div>
-  </div>
+  </section>
 
-  <div class="toast" x-show="toast" x-text="toast" x-transition></div>
+  <!-- ====================== TAB 4: NẠP DỮ LIỆU ====================== -->
+  <section x-show="tab === 'ingest'" class="space-y-6">
+
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-xl p-4 text-sm">
+      💡 Endpoint <code class="bg-amber-100 dark:bg-amber-700/30 px-1.5 py-0.5 rounded">/ingest/*</code> đáp ứng yêu cầu <strong>"thu thập liên tục"</strong> — sau khi POST, lần retrain kế tiếp sẽ tự học từ dữ liệu mới.
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <!-- Customer ingest -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-1">Tạo / cập nhật khách hàng</h3>
+        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">POST /ingest/customer</p>
+        <div class="space-y-2.5">
+          <div>
+            <label class="text-xs text-mute-light dark:text-mute-dark">customer_id <span class="text-red-500">*</span></label>
+            <input x-model="newCust.customer_id" placeholder="vd: new_user_001"
+              class="w-full mt-1 font-mono text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-mute-light dark:text-mute-dark">age</label>
+              <input x-model.number="newCust.age" type="number" min="14" max="100" placeholder="28"
+                class="w-full mt-1 text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800">
+            </div>
+            <div>
+              <label class="text-xs text-mute-light dark:text-mute-dark">club_member_status</label>
+              <select x-model="newCust.club_member_status" class="w-full mt-1 text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="LEFT CLUB">LEFT CLUB</option>
+                <option value="PRE-CREATE">PRE-CREATE</option>
+              </select>
+            </div>
+          </div>
+          <button @click="ingestCustomer()" :disabled="!newCust.customer_id"
+            class="w-full px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
+            POST /ingest/customer
+          </button>
+        </div>
+        <div x-show="ingestResult" class="mt-3 p-3 rounded-md bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-xs font-mono whitespace-pre-wrap" x-text="ingestResult"></div>
+      </div>
+
+      <!-- Transactions ingest -->
+      <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
+        <h3 class="font-semibold mb-1">Nạp giao dịch (JSON batch ≤10k)</h3>
+        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">POST /ingest/transactions</p>
+        <textarea x-model="txJson" rows="10"
+          class="w-full font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40"></textarea>
+        <div class="flex gap-2 mt-2">
+          <button @click="ingestTx()"
+            class="flex-1 px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition">
+            POST /ingest/transactions
+          </button>
+          <button @click="resetTxSample()"
+            class="px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 text-sm text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
+            Mẫu
+          </button>
+        </div>
+        <div x-show="txResult" class="mt-3 p-3 rounded-md bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-xs font-mono whitespace-pre-wrap" x-text="txResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== TAB 5: HƯỚNG DẪN ====================== -->
+  <section x-show="tab === 'guide'">
+    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 sm:p-8 shadow-card border border-gray-100 dark:border-zinc-700">
+      <div x-show="!guideHtml" class="text-center py-8 text-mute-light dark:text-mute-dark text-sm">Đang tải HUONG_DAN.md…</div>
+      <div x-show="guideError" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-800 dark:text-red-200">
+        <strong>Không load được HUONG_DAN.md.</strong>
+        <span x-text="guideError"></span><br>
+        File phải nằm tại <code>data-mining/hm_mining_app/HUONG_DAN.md</code> và route <code>/HUONG_DAN.md</code> phải có trong main.py.
+      </div>
+      <article class="prose-vi max-w-none" x-html="guideHtml"></article>
+    </div>
+  </section>
+
+  <!-- TOAST -->
+  <div x-show="toast" x-transition.opacity
+    class="fixed bottom-6 right-6 px-4 py-3 rounded-lg bg-zinc-800 text-white text-sm shadow-lg max-w-sm"
+    x-text="toast"></div>
+
 </div>
 
 <script>
 function app() {
   return {
+    // Tabs
     tab: 'overview',
+    tabs: [
+      { id:'overview', label:'Tổng quan' },
+      { id:'predict',  label:'Suy luận' },
+      { id:'models',   label:'Mô hình' },
+      { id:'ingest',   label:'Nạp dữ liệu' },
+      { id:'guide',    label:'Hướng dẫn' },
+    ],
+
+    // Overview state
     summary: {},
     clusterDist: [],
-    modelsList: [],
-    layerFilter: 'L1_KMEANS',
+    retraining: false,
+    retrainStatus: '',
+
+    // Predict state
     cidInput: '',
     customerResult: null,
-    newCust: { customer_id: '', age: null, club_member_status: 'ACTIVE' },
+    lookingUp: false,
+
+    // Models state
+    layerFilter: 'L1_KMEANS',
+    modelsList: [],
+
+    // Ingest state
+    newCust: { customer_id: '', age: 28, club_member_status: 'ACTIVE' },
     ingestResult: '',
-    txJson: JSON.stringify({transactions: [
-      {t_dat: '2024-01-15', customer_id: 'demo_001', article_id: '0108775015',
-       price: 0.025, sales_channel_id: 2}
-    ]}, null, 2),
+    txJson: '',
     txResult: '',
-    retrainStatus: '',
+
+    // Guide state
+    guideHtml: '',
+    guideError: '',
+
+    // UI
     toast: '',
 
+    // Charts
+    clusterChart: null,
+    featureChart: null,
+    rulesChart: null,
+
     async init() {
+      this.resetTxSample();
       await this.loadSummary();
       await this.loadCluster();
       await this.loadModels();
+      this.$watch('tab', t => this.onTabChange(t));
+      // Pre-fetch guide so it's instant when user clicks the tab
+      this.loadGuide();
     },
+
+    onTabChange(t) {
+      // Re-render charts when their tab becomes visible (Chart.js needs visible canvas)
+      this.$nextTick(() => {
+        if (t === 'overview') this.renderClusterChart();
+        if (t === 'models')   this.renderModelsCharts();
+      });
+    },
+
+    // ---------- Data loaders ----------
     async loadSummary() {
-      this.summary = await fetch('/metrics/summary').then(r => r.json());
+      try {
+        this.summary = await fetch('/metrics/summary').then(r => r.json());
+      } catch(e) { this.toastShow('Không tải được /metrics/summary'); }
     },
     async loadCluster() {
-      this.clusterDist = await fetch('/metrics/cluster-distribution').then(r => r.json());
-      this.renderClusterChart();
+      try {
+        this.clusterDist = await fetch('/metrics/cluster-distribution').then(r => r.json());
+        this.renderClusterChart();
+      } catch(e) {}
     },
+    async loadModels() {
+      try {
+        this.modelsList = await fetch(`/metrics/models/${this.layerFilter}`).then(r => r.json());
+        this.renderModelsCharts();
+      } catch(e) {}
+    },
+    async loadGuide() {
+      try {
+        const resp = await fetch('/HUONG_DAN.md');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const md = await resp.text();
+        this.guideHtml = marked.parse(md, { breaks: true });
+      } catch(e) {
+        this.guideError = e.message;
+      }
+    },
+
+    // ---------- Charts ----------
     renderClusterChart() {
       const ctx = document.getElementById('clusterChart');
-      if (!ctx) return;
-      if (this.chart) this.chart.destroy();
-      this.chart = new Chart(ctx, {
+      if (!ctx || !this.clusterDist?.length) return;
+      if (this.clusterChart) this.clusterChart.destroy();
+      const palette = ['#ba7517','#0f6e56','#534ab7','#a32d2d','#582864','#3a3a37'];
+      this.clusterChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: this.clusterDist.map(d => d.cluster_label || `Cụm ${d.cluster_id}`),
-          datasets: [{ data: this.clusterDist.map(d => d.n),
-                       backgroundColor: ['#534ab7','#0f6e56','#ba7517','#a32d2d','#993c1d','#3a3a37'] }]
+          datasets: [{
+            data: this.clusterDist.map(d => d.n),
+            backgroundColor: this.clusterDist.map((d,i) => palette[d.cluster_id ?? i] || palette[0]),
+            borderRadius: 6, borderSkipped: false,
+          }]
         },
-        options: { plugins: { legend: { display: false } },
-                   scales: { y: { beginAtZero: true } } }
+        options: {
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y.toLocaleString() + ' khách' } } },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() } } }
+        }
       });
     },
-    async loadModels() {
-      this.modelsList = await fetch(`/metrics/models/${this.layerFilter}`).then(r => r.json());
+
+    renderModelsCharts() {
+      this.$nextTick(() => {
+        this.renderFeatureChart();
+        this.renderRulesChart();
+      });
     },
-    formatMetrics(layer, m) {
-      if (!m) return '—';
-      if (layer === 'L1_KMEANS') return `inertia=${m.inertia_sample?.toFixed(0)}, k=${m.n_clusters}`;
-      if (layer === 'L2_APRIORI') return `${m.total_rules} luật`;
-      if (layer === 'L3_RANDOMFOREST') return `AUC=${m.auc?.toFixed(3)}, recall1=${m.recall_class1?.toFixed(2)}`;
-      return JSON.stringify(m).slice(0, 60);
+
+    renderFeatureChart() {
+      const ctx = document.getElementById('featureImportanceChart');
+      if (!ctx) return;
+      const l3 = this.summary.active_models?.L3_RANDOMFOREST;
+      const fi = l3?.metrics?.feature_importance || [];
+      if (!fi.length) return;
+      if (this.featureChart) this.featureChart.destroy();
+      this.featureChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: fi.map(f => f.feature),
+          datasets: [{
+            data: fi.map(f => (f.importance * 100)),
+            backgroundColor: '#534ab7',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x.toFixed(1) + '%' } } },
+          scales: { x: { beginAtZero: true, ticks: { callback: v => v + '%' } } }
+        }
+      });
     },
+
+    renderRulesChart() {
+      const ctx = document.getElementById('rulesPerClusterChart');
+      if (!ctx) return;
+      const l2 = this.summary.active_models?.L2_APRIORI;
+      const rpc = l2?.metrics?.rules_count_per_cluster || {};
+      const labels = Object.keys(rpc);
+      if (!labels.length) return;
+      const clusterLabels = {};
+      (this.clusterDist || []).forEach(d => clusterLabels[d.cluster_id] = d.cluster_label);
+      if (this.rulesChart) this.rulesChart.destroy();
+      this.rulesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels.map(k => clusterLabels[k] || `Cụm ${k}`),
+          datasets: [{
+            data: labels.map(k => rpc[k]),
+            backgroundColor: ['#ba7517','#0f6e56','#534ab7','#a32d2d','#582864','#3a3a37'],
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+        }
+      });
+    },
+
+    // ---------- Helpers ----------
+    layerName(layer) {
+      return ({ L1_KMEANS:'Layer 1 — K-Means', L2_APRIORI:'Layer 2 — Apriori', L3_RANDOMFOREST:'Layer 3 — Random Forest' })[layer] || layer;
+    },
+
+    formatMetricsHtml(layer, m) {
+      if (!m) return '<span class="text-mute-light dark:text-mute-dark italic">chưa train</span>';
+      if (layer === 'L1_KMEANS') return `<span class="font-mono">k=${m.n_clusters}, inertia=${m.inertia_sample?.toFixed(0)}</span>`;
+      if (layer === 'L2_APRIORI') return `<span class="font-mono">${m.total_rules} luật</span>`;
+      if (layer === 'L3_RANDOMFOREST') return `<span class="font-mono">AUC=<strong>${m.auc?.toFixed(3)}</strong>, recall₁=<strong>${m.recall_class1?.toFixed(2)}</strong></span>`;
+      return JSON.stringify(m).slice(0, 80);
+    },
+
+    get overviewStats() {
+      return [
+        { label:'Khách hàng', value:(this.summary.n_customers||0).toLocaleString(), hint:'tổng customers' },
+        { label:'Sản phẩm',   value:(this.summary.n_articles ||0).toLocaleString(), hint:'articles' },
+        { label:'Giao dịch',  value:(this.summary.n_transactions||0).toLocaleString(), hint:'transactions' },
+        { label:'Đã phân cụm', value:(this.summary.n_clustered_customers||0).toLocaleString(), hint:`max(t_dat)=${this.summary.latest_transaction_date || '—'}` },
+      ];
+    },
+
+    // ---------- Actions ----------
     async lookupCustomer() {
       if (!this.cidInput) return;
-      const out = {};
-      try { out.cluster = await fetch(`/predict/cluster/${this.cidInput}`).then(r => r.json()); }
-      catch(e){}
-      try { out.recommend = await fetch(`/predict/recommend/${this.cidInput}`).then(r => r.json()); }
-      catch(e){}
-      try { out.will_buy = await fetch(`/predict/will-buy/${this.cidInput}`).then(r => r.json()); }
-      catch(e){}
-      this.customerResult = out;
+      this.lookingUp = true;
+      this.customerResult = { cluster:null, recommend:null, will_buy:null };
+      const fetchOr = async (path) => {
+        try {
+          const r = await fetch(path);
+          const j = await r.json();
+          return r.ok ? j : { detail: j.detail || `HTTP ${r.status}` };
+        } catch(e) { return { detail: e.message }; }
+      };
+      // Run 3 endpoints in parallel
+      const [cluster, recommend, will_buy] = await Promise.all([
+        fetchOr(`/predict/cluster/${this.cidInput}`),
+        fetchOr(`/predict/recommend/${this.cidInput}?top_k=5`),
+        fetchOr(`/predict/will-buy/${this.cidInput}`),
+      ]);
+      this.customerResult = { cluster, recommend, will_buy };
+      this.lookingUp = false;
     },
+
+    async loadSampleId() {
+      this.toastShow('Đang lấy customer_id mẫu…');
+      try {
+        // Use cluster-distribution + a known cluster — sample one customer per click via predict layers
+        // Backend doesn't have a "random customer" endpoint; we use a hardcoded sample fetcher:
+        const sampleResp = await fetch('/metrics/cluster-distribution');
+        const dist = await sampleResp.json();
+        if (!dist?.length) { this.toastShow('Layer 1 chưa train — không có customer nào trong customer_clusters.'); return; }
+        // We don't have direct API; use a known good customer_id from log
+        // The user can also paste any 64-hex customer_id. For sample, we use the one verified earlier.
+        this.cidInput = 'd9793b30ac8a88a161cb8d690bab119fb9285007a222dedde49b63e9088b660e';
+        this.toastShow('Đã điền 1 customer_id mẫu — click Tra cứu.');
+      } catch(e) { this.toastShow('Không lấy được mẫu: ' + e.message); }
+    },
+
     async retrainAll() {
-      this.retrainStatus = 'Đang chạy ngầm...';
-      const r = await fetch('/retrain/all', { method: 'POST' }).then(r => r.json());
-      this.retrainStatus = `Đã xếp lịch ${r.layers?.join(', ')}. Refresh lại sau vài phút.`;
-      this.showToast('Retrain đang chạy — refresh lại sau');
+      this.retraining = true;
+      this.retrainStatus = 'Đang gửi yêu cầu…';
+      try {
+        const r = await fetch('/retrain/all', { method: 'POST' }).then(r => r.json());
+        this.retrainStatus = `Đã xếp lịch ${r.layers?.join(', ')}. Train background ~25-30 phút trên DB remote — refresh trang sau khi log uvicorn báo "Hoàn tất L3".`;
+        this.toastShow('Retrain background đã start');
+      } catch(e) {
+        this.retrainStatus = 'Lỗi: ' + e.message;
+      } finally { this.retraining = false; }
     },
+
     async ingestCustomer() {
-      const r = await fetch('/ingest/customer', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(this.newCust)
-      }).then(r => r.json());
-      this.ingestResult = JSON.stringify(r, null, 2);
+      try {
+        const r = await fetch('/ingest/customer', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.newCust),
+        });
+        this.ingestResult = JSON.stringify(await r.json(), null, 2);
+        if (r.ok) this.toastShow('Đã tạo / cập nhật khách hàng');
+      } catch(e) { this.ingestResult = 'Lỗi: ' + e.message; }
     },
+
     async ingestTx() {
-      const body = JSON.parse(this.txJson);
-      const r = await fetch('/ingest/transactions', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body)
-      }).then(r => r.json());
-      this.txResult = JSON.stringify(r, null, 2);
-      this.loadSummary();
+      try {
+        const body = JSON.parse(this.txJson);
+        const r = await fetch('/ingest/transactions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        this.txResult = JSON.stringify(await r.json(), null, 2);
+        if (r.ok) {
+          this.toastShow(`Đã nạp ${body.transactions?.length || '?'} giao dịch`);
+          this.loadSummary();
+        }
+      } catch(e) { this.txResult = 'Lỗi: ' + e.message; }
     },
-    showToast(msg) {
+
+    resetTxSample() {
+      this.txJson = JSON.stringify({
+        transactions: [
+          { t_dat: '2024-01-15', customer_id: 'demo_001', article_id: '0108775015', price: 0.025, sales_channel_id: 2 }
+        ]
+      }, null, 2);
+    },
+
+    toastShow(msg) {
       this.toast = msg;
-      setTimeout(() => this.toast = '', 3000);
-    }
+      clearTimeout(this._toastT);
+      this._toastT = setTimeout(() => this.toast = '', 3000);
+    },
   };
 }
 </script>
