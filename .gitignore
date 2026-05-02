@@ -1,3 +1,21 @@
+# macOS
 .DS_Store
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+
+# Virtual envs (any depth)
+.venv/
+venv/
+
+# Node.js
+node_modules/
+
+# IDEs
+.idea/
+.vscode/
+
+# Local env (each app should have its own .env.example)
+.env
