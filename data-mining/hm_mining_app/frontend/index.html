@@ -759,29 +759,59 @@ function app() {
     },
 
     async ingestCustomer() {
+      this.ingestResult = '';
       try {
         const r = await fetch('/ingest/customer', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.newCust),
         });
-        this.ingestResult = JSON.stringify(await r.json(), null, 2);
-        if (r.ok) this.toastShow('Đã tạo / cập nhật khách hàng');
-      } catch(e) { this.ingestResult = 'Lỗi: ' + e.message; }
+        const data = await r.json().catch(() => ({ raw_text: '<not-json>' }));
+        if (r.ok) {
+          this.ingestResult = '✅ ' + JSON.stringify(data, null, 2);
+          this.toastShow('Đã tạo / cập nhật khách hàng');
+        } else {
+          this.ingestResult = `❌ HTTP ${r.status}\n` + JSON.stringify(data, null, 2);
+        }
+      } catch(e) {
+        this.ingestResult = '❌ Lỗi mạng / kết nối: ' + e.message;
+      }
     },
 
     async ingestTx() {
+      this.txResult = '';
+
+      // Bước 1: parse JSON ở client trước, báo lỗi rõ nếu malformed
+      let body;
       try {
-        const body = JSON.parse(this.txJson);
+        body = JSON.parse(this.txJson);
+      } catch(e) {
+        this.txResult = `❌ JSON sai cú pháp:\n${e.message}\n\n`
+          + 'Mẹo: nếu vừa paste từ Word/Notes, chữ " có thể bị đổi thành dấu ngoặc kép cong (" hoặc ").\n'
+          + 'Click nút "Mẫu" để reset về JSON chuẩn.';
+        return;
+      }
+      if (!body?.transactions?.length) {
+        this.txResult = '❌ JSON phải có key "transactions" là array, ví dụ:\n{ "transactions": [ {...} ] }';
+        return;
+      }
+
+      // Bước 2: gửi POST, hiển thị response
+      try {
         const r = await fetch('/ingest/transactions', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        this.txResult = JSON.stringify(await r.json(), null, 2);
+        const data = await r.json().catch(() => ({ raw_text: '<server không trả JSON>' }));
         if (r.ok) {
-          this.toastShow(`Đã nạp ${body.transactions?.length || '?'} giao dịch`);
+          this.txResult = `✅ Nạp ${body.transactions.length} giao dịch thành công.\n\n` + JSON.stringify(data, null, 2);
+          this.toastShow(`Đã nạp ${body.transactions.length} giao dịch`);
           this.loadSummary();
+        } else {
+          this.txResult = `❌ HTTP ${r.status}\n` + JSON.stringify(data, null, 2);
         }
-      } catch(e) { this.txResult = 'Lỗi: ' + e.message; }
+      } catch(e) {
+        this.txResult = '❌ Lỗi mạng / kết nối: ' + e.message;
+      }
     },
 
     resetTxSample() {
