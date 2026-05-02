@@ -32,11 +32,18 @@ def _read_section(marker: str) -> str:
 
 
 def latest_cutoff_date() -> date:
-    """Lấy ngày giao dịch lớn nhất trong DB → mốc cắt động (báo cáo mục 4.3.1)."""
+    """Lấy ngày giao dịch lớn nhất trong DB → mốc cắt động (báo cáo mục 4.3.1).
+
+    Dùng MAX(t_dat) trên cột varchar (lexicographic = đúng với ISO YYYY-MM-DD)
+    để Postgres tận dụng được idx_tx_date (text). Tránh MAX(t_dat::date) vì
+    cast bắt buộc full scan 32M rows.
+    """
     with engine.connect() as c:
-        d = c.execute(text("SELECT MAX(t_dat::date) FROM transactions")).scalar()
+        d = c.execute(text("SELECT MAX(t_dat) FROM transactions")).scalar()
     if d is None:
         raise RuntimeError("Bảng transactions trống — không có dữ liệu để huấn luyện.")
+    if isinstance(d, str):
+        return date.fromisoformat(d)
     return d
 
 
