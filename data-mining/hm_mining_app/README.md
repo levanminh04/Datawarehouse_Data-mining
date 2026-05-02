@@ -44,12 +44,14 @@ Tất cả tính toán nặng (JOIN, AGG) đẩy xuống PostgreSQL bằng SQL �
 
 ## Cài đặt local
 
+> **Yêu cầu:** Python **3.11** (hoặc 3.12). Pinning trong `requirements.txt` (numpy 1.26.4, pandas 2.2.3, psycopg2-binary 2.9.9, scikit-learn 1.5.2) không có wheel cho Python 3.13/3.14 — nếu dùng version mới hơn, pip sẽ cố build từ source và fail. Trên macOS: `brew install python@3.11`.
+
 ```bash
 # 1. Vào thư mục app
 cd data-mining/hm_mining_app
 
-# 2. Venv + dependencies
-python3 -m venv .venv && source .venv/bin/activate
+# 2. Venv + dependencies (BẮT BUỘC dùng python3.11)
+python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Config — .env.example đã trỏ sẵn vào DB remote, copy xong là chạy được
