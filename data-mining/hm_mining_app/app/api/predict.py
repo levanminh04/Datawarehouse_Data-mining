@@ -40,14 +40,20 @@ def recommend(customer_id: str, top_k: int = Query(5, ge=1, le=20)) -> Recommend
     if cluster is None:
         raise HTTPException(404, "Cần Layer 1 active + customer tồn tại.")
 
-    # Lấy giỏ hàng hôm nay (hoặc 30 ngày gần nhất nếu hôm nay rỗng)
+    # Giỏ hàng = các product_group khách đã mua trong 30 ngày gần nhất
+    # tính từ NGÀY MUA CUỐI CỦA CHÍNH KHÁCH ĐÓ (không phải CURRENT_DATE).
+    # Cách này hoạt động đúng cả trên dataset historical (H&M, max=2020-09-22)
+    # lẫn dataset live, và dùng được index idx_tx_customer.
+    # Cast t_dat::date vì DB hiện tại để cột này dạng VARCHAR.
     with get_session() as s:
         rows = s.execute(text("""
             SELECT DISTINCT a.product_group_name
             FROM transactions t
             JOIN articles a USING (article_id)
             WHERE t.customer_id = :cid
-              AND t.t_dat >= CURRENT_DATE - INTERVAL '30 days'
+              AND t.t_dat::date >= (
+                  SELECT MAX(t_dat::date) FROM transactions WHERE customer_id = :cid
+              ) - INTERVAL '30 days'
         """), {"cid": customer_id}).fetchall()
     items = [r[0] for r in rows]
 
