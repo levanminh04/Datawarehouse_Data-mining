@@ -46,7 +46,7 @@ SELECT
     a.pct_menswear,
     a.pct_baby,
     a.pct_sport,
-    (:cutoff_date::date - a.last_purchase)::int AS recency_days
+    (CAST(:cutoff_date AS date) - a.last_purchase)::int AS recency_days
 FROM agg a
 LEFT JOIN customers c ON c.customer_id = a.customer_id;
 
@@ -72,4 +72,4 @@ HAVING COUNT(DISTINCT a.product_group_name) >= 2;
 SELECT DISTINCT customer_id
 FROM   transactions
 WHERE  t_dat >  :cutoff_date
-  AND  t_dat <= (:cutoff_date::date + (:window_days || ' days')::interval);
+  AND  t_dat <= (CAST(:cutoff_date AS date) + (:window_days || ' days')::interval);
