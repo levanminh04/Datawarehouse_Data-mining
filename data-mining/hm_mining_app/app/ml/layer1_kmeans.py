@@ -10,12 +10,13 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+from psycopg2.extras import execute_values
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sqlalchemy import text
 
 from app.config import settings
-from app.db import get_session
+from app.db import engine, get_session
 from app.ml import registry
 from app.ml.features import extract_customer_features, latest_cutoff_date
 
@@ -87,8 +88,12 @@ def train_kmeans(
     return {**info, "metrics": metrics}
 
 
-def _assign_all_customers(km, scaler, cluster_labels, cutoff: date, batch: int = 100_000) -> int:
-    """Suy luận cụm cho mọi khách hàng theo từng lô, UPSERT vào customer_clusters."""
+def _assign_all_customers(km, scaler, cluster_labels, cutoff: date, page_size: int = 10_000) -> int:
+    """Suy luận cụm cho mọi khách hàng theo từng lô, UPSERT vào customer_clusters.
+
+    Dùng psycopg2.extras.execute_values: gửi page_size rows / 1 round-trip
+    network. Nhanh hơn SQLAlchemy executemany ~100× trên DB ở xa (Sydney).
+    """
     df = extract_customer_features(cutoff, sample_size=None)
     if df.empty:
         return 0
@@ -98,27 +103,35 @@ def _assign_all_customers(km, scaler, cluster_labels, cutoff: date, batch: int =
     df["cluster_label"] = df["cluster_id"].map(cluster_labels)
 
     version = pd.Timestamp.utcnow().strftime("%Y%m%d_%H%M%S")
-    sql = text("""
-        INSERT INTO customer_clusters (customer_id, cluster_id, cluster_label, model_version, assigned_at)
-        VALUES (:customer_id, :cluster_id, :cluster_label, :model_version, NOW())
+
+    rows = [
+        (r.customer_id, int(r.cluster_id), r.cluster_label, version)
+        for r in df.itertuples(index=False)
+    ]
+    sql_template = """
+        INSERT INTO customer_clusters
+            (customer_id, cluster_id, cluster_label, model_version, assigned_at)
+        VALUES %s
         ON CONFLICT (customer_id) DO UPDATE
         SET cluster_id = EXCLUDED.cluster_id,
             cluster_label = EXCLUDED.cluster_label,
             model_version = EXCLUDED.model_version,
             assigned_at = NOW()
-    """)
-    with get_session() as s:
-        for i in range(0, len(df), batch):
-            chunk = df.iloc[i:i+batch]
-            s.execute(sql, [
-                {
-                    "customer_id": r.customer_id,
-                    "cluster_id": int(r.cluster_id),
-                    "cluster_label": r.cluster_label,
-                    "model_version": version,
-                }
-                for r in chunk.itertuples(index=False)
-            ])
+    """
+    raw_conn = engine.raw_connection()
+    try:
+        with raw_conn.cursor() as cur:
+            execute_values(
+                cur,
+                sql_template,
+                rows,
+                template="(%s, %s, %s, %s, NOW())",
+                page_size=page_size,
+            )
+        raw_conn.commit()
+    finally:
+        raw_conn.close()
+
     return len(df)
 
 
