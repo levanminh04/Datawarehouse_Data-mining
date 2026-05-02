@@ -72,8 +72,8 @@ def predict_will_buy(customer_id: str) -> PredictWillBuyOut:
         raise HTTPException(404, "Layer 3 chưa được huấn luyện.")
     artifact, reg = loaded
 
-    df = extract_customer_features(latest_cutoff_date(), sample_size=None)
-    df = df[df["customer_id"] == customer_id]
+    # Per-customer Q1 (filter ngay trong CTE bằng customer_id) — < 1 giây
+    df = extract_customer_features(latest_cutoff_date(), customer_id=customer_id)
     if df.empty:
         raise HTTPException(404, f"Không có dữ liệu cho customer_id={customer_id}.")
     feats = df.iloc[0].to_dict()

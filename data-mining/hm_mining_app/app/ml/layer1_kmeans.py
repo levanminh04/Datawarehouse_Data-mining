@@ -152,8 +152,8 @@ def predict_cluster(customer_id: str) -> dict | None:
         return None
     artifact, _ = loaded
 
-    df = extract_customer_features(latest_cutoff_date(), sample_size=None)
-    df = df[df["customer_id"] == customer_id]
+    # Per-customer Q1 thay vì load 1.36M rồi filter
+    df = extract_customer_features(latest_cutoff_date(), customer_id=customer_id)
     if df.empty:
         return None
     Xs = artifact["scaler"].transform(df[FEATURE_COLS].values)

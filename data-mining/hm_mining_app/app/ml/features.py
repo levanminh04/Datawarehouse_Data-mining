@@ -44,22 +44,41 @@ def extract_customer_features(
     cutoff_date: date,
     sample_size: int | None = None,
     random_state: int = 42,
+    customer_id: str | None = None,
 ) -> pd.DataFrame:
     """
     Trả về DataFrame một dòng / khách hàng với các cột:
       customer_id, age, total_items, frequency, monetary, avg_price,
       pct_online, pct_ladieswear, pct_divided, pct_menswear, pct_baby,
       pct_sport, recency_days
+
+    Nếu `customer_id` được truyền: thêm WHERE filter ở đầu CTE để Q1 chỉ
+    duyệt giao dịch của 1 khách → dùng được index idx_tx_customer, chạy
+    trong < 1 giây thay vì 5–10 phút full scan.
     """
     sql = _read_section("Q1:")
-    df = pd.read_sql(text(sql), engine, params={"cutoff_date": cutoff_date})
+    params: dict = {"cutoff_date": cutoff_date}
+
+    if customer_id is not None:
+        # Inject filter vào CTE `joined`. Đặt sau "FROM transactions t" để
+        # Postgres lọc trước khi JOIN với articles, dùng index customer_id.
+        sql = sql.replace(
+            "WHERE   t.t_dat::date <= CAST(:cutoff_date AS date)",
+            "WHERE   t.customer_id = :customer_id "
+            "AND   t.t_dat::date <= CAST(:cutoff_date AS date)",
+        )
+        params["customer_id"] = customer_id
+
+    df = pd.read_sql(text(sql), engine, params=params)
 
     # Null-fill: khách có trong customers nhưng chưa giao dịch nào trước cutoff
     pct_cols = [c for c in df.columns if c.startswith("pct_")]
     df[pct_cols] = df[pct_cols].fillna(0.0)
     df["avg_price"] = df["avg_price"].fillna(0.0)
     df["recency_days"] = df["recency_days"].fillna(9999).astype(int)
-    df["age"] = df["age"].fillna(df["age"].median()).astype(int)
+    if not df.empty:
+        median_age = df["age"].median()
+        df["age"] = df["age"].fillna(median_age if pd.notna(median_age) else 30).astype(int)
 
     if sample_size and len(df) > sample_size:
         df = df.sample(sample_size, random_state=random_state).reset_index(drop=True)
