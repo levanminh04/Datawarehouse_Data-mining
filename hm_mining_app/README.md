@@ -2,7 +2,7 @@
 
 Phần code do **một thành viên Nhóm 01 — KDL & KPDL** phụ trách trong bài tập lớn môn _Kho dữ liệu và Khai phá dữ liệu_ (giảng viên: ThS. Nguyễn Quỳnh Chi, năm học 2025–2026).
 
-Module này đáp ứng 2 yêu cầu mở rộng của thầy được nêu ở **Chương 5.3** báo cáo nhóm:
+Module này đáp ứng 2 yêu cầu mở rộng của cô được nêu ở **Chương 5.3** báo cáo nhóm:
 
 1. **Hệ thống thu thập dữ liệu liên tục** — endpoint `POST /ingest/*` nhận khách hàng & giao dịch mới qua HTTP, ghi thẳng vào bảng `transactions`.
 2. **Hệ thống học liên tục** — `APScheduler` retrain định kỳ; mỗi phiên bản mô hình được lưu vào bảng `model_registry` với chỉ số đánh giá; phục vụ bằng phiên bản `is_active=TRUE` (zero-downtime swap).
@@ -68,7 +68,7 @@ App chạy tại <http://localhost:8000> (Dashboard) và <http://localhost:8000/
 | GET  | `/metrics/models/{layer}` | Lịch sử các phiên bản |
 | GET  | `/metrics/cluster-distribution` | Số KH theo từng cụm |
 
-## Học liên tục — đáp ứng yêu cầu thầy
+## Học liên tục — đáp ứng yêu cầu cô
 
 1. **Thu thập:** `POST /ingest/transactions` ghi thẳng vào bảng `transactions`. Mọi giao dịch mới đều hiện diện ở lần huấn luyện kế tiếp.
 2. **Versioning:** mỗi lần `train_*` thành công sẽ:
@@ -96,7 +96,7 @@ curl http://localhost:8000/health
 
 # 2. Predict cho 1 khách hàng (sau khi đã train)
 curl http://localhost:8000/predict/cluster/cust_000001
-curl http://localhost:8000/predict/recommend/cust_000001
+curl http://localhost:8000/predict/recommend/cust_000001?top_k=5
 curl http://localhost:8000/predict/will-buy/cust_000001
 
 # 3. Xem chỉ số
