@@ -91,8 +91,8 @@ the new location.
 | 5 | `rm` | `hm_mining_app/Dockerfile` | owner runs local Python only |
 | 6 | `rm` | `hm_mining_app/docker-compose.yml` | owner runs local Python only |
 | 7 | `rm` | `hm_mining_app/scripts/seed_demo.py` | DB H&M is loaded by another member |
-| 8 | rewrite | `hm_mining_app/README.md` + `hm_mining_app/.env.example` | scope to single-member workflow |
-| 9 | add | `hm_mining_app/models_store/.gitkeep` + extend `.gitignore` | preserve empty runtime dir |
+| 8 | rewrite | `hm_mining_app/README.md` | scope to single-member workflow |
+| 9 | edit | `hm_mining_app/.gitignore` (replace `models_store/` with `models_store/*` + `!models_store/.gitkeep`) and create `hm_mining_app/models_store/.gitkeep` | preserve empty runtime dir under version control |
 | — | `git add hm_mining_app/` | (final staging step — not numbered as a refactor op) | brings the new layout under version control |
 
 These ops are independent and applied in a single commit.
@@ -122,26 +122,30 @@ The new README is structured for the single-member, local-Python scope:
 - `Phân công đề xuất` table (single member; no team partition needed here)
 - `Cấu trúc thư mục` ASCII tree (now lives in this design doc)
 
-## 7. `.env.example` Rewrite
+## 7. `.env.example` — No Change
 
-```bash
-# Postgres của nhóm — sửa cho khớp host của các bạn
-DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/DBNAME
+The current `.env.example` (verified 2026-05-02 by reading both
+`hm_mining_app/.env.example` and `app/config.py`) contains exactly the 11
+variables that `pydantic_settings` consumes in `app/config.py`:
 
-# Thư mục lưu file .joblib model
-MODELS_DIR=./models_store
+- `DATABASE_URL`
+- `MODEL_STORE`
+- `KMEANS_N_CLUSTERS`, `KMEANS_SAMPLE_SIZE`
+- `APRIORI_MIN_SUPPORT`, `APRIORI_MIN_CONFIDENCE`
+- `RF_PREDICTION_WINDOW_DAYS`, `RF_SAMPLE_SIZE`
+- `RETRAIN_L1_CRON`, `RETRAIN_L2_CRON`, `RETRAIN_L3_CRON`
+- `ENABLE_SCHEDULER`
 
-# Bật/tắt cron retrain (false khi dev, true khi demo)
-SCHEDULER_ENABLED=true
-```
-
-Removed: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`,
-`POSTGRES_HOST`, `POSTGRES_PORT` (these were for the docker-compose Postgres
-service, which no longer exists).
+There are **no** `POSTGRES_USER` / `POSTGRES_PASSWORD` / Docker-specific
+variables in this file (those would have lived in `docker-compose.yml`
+environment section, which is being removed in op 6). The file is correct
+as-is and stays untouched. Earlier drafts of this spec (commit a9121d57)
+incorrectly proposed reducing to 3 variables; that proposal is rescinded
+because it would lose legitimate ML hyperparameter knobs.
 
 ## 8. Verification Plan
 
-After applying the 8 ops, run from the repo root:
+After applying the 9 ops, run from the repo root:
 
 | # | Check | Pass criterion |
 |---|-------|----------------|
