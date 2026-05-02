@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------- Ingest ----------
@@ -34,6 +34,8 @@ class PredictWillBuyIn(BaseModel):
 
 
 class PredictWillBuyOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     customer_id: str
     will_buy: int
     proba: float
@@ -41,6 +43,8 @@ class PredictWillBuyOut(BaseModel):
 
 
 class ClusterOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     customer_id: str
     cluster_id: int
     cluster_label: str
