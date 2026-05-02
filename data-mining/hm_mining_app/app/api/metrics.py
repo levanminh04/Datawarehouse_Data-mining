@@ -22,7 +22,7 @@ def summary() -> dict:
         n_articles  = s.execute(text("SELECT COUNT(*) FROM articles")).scalar()
         n_tx        = s.execute(text("SELECT COUNT(*) FROM transactions")).scalar()
         n_clustered = s.execute(text("SELECT COUNT(*) FROM customer_clusters")).scalar()
-        last_tx     = s.execute(text("SELECT MAX(t_dat) FROM transactions")).scalar()
+        last_tx     = s.execute(text("SELECT MAX(t_dat::date) FROM transactions")).scalar()
 
     out = {
         "n_customers": n_customers,

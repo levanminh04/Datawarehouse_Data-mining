@@ -34,7 +34,7 @@ def _read_section(marker: str) -> str:
 def latest_cutoff_date() -> date:
     """Lấy ngày giao dịch lớn nhất trong DB → mốc cắt động (báo cáo mục 4.3.1)."""
     with engine.connect() as c:
-        d = c.execute(text("SELECT MAX(t_dat) FROM transactions")).scalar()
+        d = c.execute(text("SELECT MAX(t_dat::date) FROM transactions")).scalar()
     if d is None:
         raise RuntimeError("Bảng transactions trống — không có dữ liệu để huấn luyện.")
     return d

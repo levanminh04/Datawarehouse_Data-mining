@@ -5,6 +5,9 @@
 
 -- ----- Q1: Fashion DNA + RFM cho mỗi khách hàng (Layer 1 input) -----
 -- :cutoff_date    => DATE, mọi giao dịch t_dat <= cutoff được tính
+-- Lưu ý: trên DB hiện tại t_dat là VARCHAR (do load CSV không cast type),
+-- nên cần t_dat::date ở các chỗ làm số học. Khi ALTER COLUMN sang DATE
+-- thì có thể bỏ các cast này để truy vấn dùng được index.
 WITH joined AS (
     SELECT  t.customer_id,
             t.t_dat,
@@ -14,7 +17,7 @@ WITH joined AS (
             a.product_group_name
     FROM    transactions t
     JOIN    articles a USING (article_id)
-    WHERE   t.t_dat <= :cutoff_date
+    WHERE   t.t_dat::date <= CAST(:cutoff_date AS date)
 ),
 agg AS (
     SELECT
@@ -23,7 +26,7 @@ agg AS (
         AVG(price)                                               AS avg_price,
         SUM(price)                                               AS monetary,
         COUNT(DISTINCT t_dat)                                    AS frequency,
-        MAX(t_dat)                                               AS last_purchase,
+        MAX(t_dat::date)                                         AS last_purchase,
         AVG(CASE WHEN sales_channel_id = 2 THEN 1.0 ELSE 0.0 END) AS pct_online,
         AVG(CASE WHEN index_group_name = 'Ladieswear'    THEN 1.0 ELSE 0.0 END) AS pct_ladieswear,
         AVG(CASE WHEN index_group_name = 'Divided'       THEN 1.0 ELSE 0.0 END) AS pct_divided,
@@ -71,5 +74,5 @@ HAVING COUNT(DISTINCT a.product_group_name) >= 2;
 -- :window_days    => INT (mặc định 7)
 SELECT DISTINCT customer_id
 FROM   transactions
-WHERE  t_dat >  :cutoff_date
-  AND  t_dat <= (CAST(:cutoff_date AS date) + (:window_days || ' days')::interval);
+WHERE  t_dat::date >  CAST(:cutoff_date AS date)
+  AND  t_dat::date <= CAST(:cutoff_date AS date) + (:window_days || ' days')::interval;
