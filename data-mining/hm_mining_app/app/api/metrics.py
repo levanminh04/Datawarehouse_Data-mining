@@ -6,7 +6,7 @@ Endpoints phục vụ dashboard:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
 from app.db import get_session
@@ -66,24 +66,40 @@ def cluster_distribution() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@router.get("/sample-customers")
-def sample_customers(per_cluster: int = 5) -> list[dict]:
-    """Trả về `per_cluster` khách hàng mẫu cho mỗi cụm với info cơ bản
-    (age, club status, tổng số giao dịch, tổng tiền, ngày mua cuối) —
-    phục vụ tab Suy luận của dashboard để demo có context.
+@router.get("/customers")
+def list_customers(
+    cluster_id: int = Query(..., ge=0, le=100, description="Lọc theo cụm phong cách"),
+    page: int = Query(1, ge=1, description="Trang 1-indexed"),
+    page_size: int = Query(10, ge=1, le=100, description="Số khách / trang"),
+) -> dict:
+    """Paginated browser của customer_clusters trong 1 cụm — trả kèm
+    age, club_member_status, RFM stats để picker hiển thị có context.
+
+    Sort cố định theo customer_id ASC để pagination ổn định và tận dụng
+    được PRIMARY KEY index trên customer_clusters. Nếu cần sort theo
+    spent/recency, dùng /metrics/customers + sort phía client trong
+    page hiện tại, hoặc query SQL trực tiếp.
+
+    Output: {items, total, page, page_size, total_pages}
     """
-    if per_cluster < 1 or per_cluster > 20:
-        raise HTTPException(400, "per_cluster phải trong khoảng 1-20.")
+    offset = (page - 1) * page_size
+
     with get_session() as s:
+        total = s.execute(
+            text("SELECT COUNT(*) FROM customer_clusters WHERE cluster_id = :cid"),
+            {"cid": cluster_id},
+        ).scalar() or 0
+
+        if total == 0:
+            return {"items": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 0}
+
         rows = s.execute(text("""
             WITH picked AS (
                 SELECT customer_id, cluster_id, cluster_label
-                FROM (
-                    SELECT customer_id, cluster_id, cluster_label,
-                           ROW_NUMBER() OVER (PARTITION BY cluster_id ORDER BY customer_id) AS rn
-                    FROM customer_clusters
-                ) t
-                WHERE rn <= :n
+                FROM   customer_clusters
+                WHERE  cluster_id = :cid
+                ORDER  BY customer_id
+                LIMIT  :limit OFFSET :offset
             )
             SELECT
                 p.customer_id,
@@ -92,20 +108,21 @@ def sample_customers(per_cluster: int = 5) -> list[dict]:
                 c.age,
                 c.club_member_status,
                 COALESCE(stats.n_tx, 0)              AS n_transactions,
-                ROUND(COALESCE(stats.spent, 0)::numeric, 2) AS total_spent,
+                ROUND(COALESCE(stats.spent, 0)::numeric, 4) AS total_spent,
                 stats.last_purchase
-            FROM picked p
-            LEFT JOIN customers c ON c.customer_id = p.customer_id
-            LEFT JOIN LATERAL (
+            FROM   picked p
+            LEFT  JOIN customers c ON c.customer_id = p.customer_id
+            LEFT  JOIN LATERAL (
                 SELECT  COUNT(*)        AS n_tx,
                         SUM(price)      AS spent,
                         MAX(t_dat::date) AS last_purchase
                 FROM    transactions
                 WHERE   customer_id = p.customer_id
             ) stats ON TRUE
-            ORDER BY p.cluster_id, p.customer_id
-        """), {"n": per_cluster}).mappings().all()
-    return [
+            ORDER BY p.customer_id
+        """), {"cid": cluster_id, "limit": page_size, "offset": offset}).mappings().all()
+
+    items = [
         {
             **dict(r),
             "total_spent": float(r["total_spent"]) if r["total_spent"] is not None else 0.0,
@@ -113,6 +130,13 @@ def sample_customers(per_cluster: int = 5) -> list[dict]:
         }
         for r in rows
     ]
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size,
+    }
 
 
 @router.get("/customer-profile/{customer_id}")

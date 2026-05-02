@@ -220,18 +220,23 @@
   <!-- ====================== TAB 2: SUY LUẬN ====================== -->
   <section x-show="tab === 'predict'" class="space-y-6">
 
-    <!-- Customer browser — bảng N khách / cụm để chọn cụ thể -->
+    <!-- Customer browser — paginated theo cụm -->
     <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
       <div class="flex items-baseline justify-between flex-wrap gap-2 mb-3">
         <h3 class="font-semibold">Chọn khách hàng để tra cứu</h3>
         <span class="text-xs text-mute-light dark:text-mute-dark">
-          <span x-show="sampleCustomers.length" x-text="`${sampleCustomers.length} khách mẫu (${samplePerCluster}/cụm)`"></span>
-          <span x-show="loading.samples" class="spinner text-brand-500 ml-2"></span>
+          <template x-if="currentPage().total > 0">
+            <span>
+              <strong x-text="currentPage().total.toLocaleString()"></strong> khách trong cụm
+              <span x-text="clusterName(browseCluster)"></span>
+            </span>
+          </template>
+          <span x-show="currentPage().loading" class="spinner text-brand-500 ml-2"></span>
         </span>
       </div>
 
       <!-- 5 cluster tabs -->
-      <div class="flex gap-1 sm:gap-2 mb-3 border-b border-gray-200 dark:border-zinc-700 overflow-x-auto" x-show="sampleCustomers.length">
+      <div class="flex gap-1 sm:gap-2 mb-3 border-b border-gray-200 dark:border-zinc-700 overflow-x-auto">
         <template x-for="cid in [0,1,2,3,4]" :key="cid">
           <button @click="browseCluster = cid"
             :class="browseCluster === cid
@@ -243,7 +248,7 @@
       </div>
 
       <!-- Customer table for selected cluster -->
-      <div class="overflow-x-auto" x-show="sampleCustomers.length">
+      <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="text-xs text-mute-light dark:text-mute-dark uppercase tracking-wide">
             <tr>
@@ -257,7 +262,18 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="c in sampleCustomers.filter(x => x.cluster_id === browseCluster)" :key="c.customer_id">
+            <!-- Skeleton rows khi đang load -->
+            <template x-if="currentPage().loading && !currentPage().items.length">
+              <tr><td colspan="7" class="py-4">
+                <div class="space-y-2">
+                  <template x-for="i in browsePageSize" :key="i">
+                    <div class="skeleton h-6 w-full"></div>
+                  </template>
+                </div>
+              </td></tr>
+            </template>
+            <!-- Real rows -->
+            <template x-for="c in currentPage().items" :key="c.customer_id">
               <tr class="border-t border-gray-100 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800/60 cursor-pointer transition"
                   @click="pickSample(c)">
                 <td class="py-2 pr-3 font-mono text-xs" x-text="shortId(c.customer_id)"></td>
@@ -271,47 +287,60 @@
                 </td>
               </tr>
             </template>
-            <tr x-show="!sampleCustomers.filter(x => x.cluster_id === browseCluster).length">
-              <td colspan="7" class="text-center py-4 text-xs text-mute-light dark:text-mute-dark italic">Không có mẫu cho cụm này.</td>
+            <tr x-show="!currentPage().loading && !currentPage().items.length">
+              <td colspan="7" class="text-center py-4 text-xs text-amber-600 dark:text-amber-400 italic">
+                ⚠ Cụm rỗng. Layer 1 chưa train? Vào tab Tổng quan click "Retrain toàn bộ".
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div x-show="!sampleCustomers.length && !loading.samples" class="text-xs text-amber-600 dark:text-amber-400 mb-3">
-        ⚠ Layer 1 chưa train hoặc <code>customer_clusters</code> rỗng — chưa có mẫu để chọn.
-        Vào tab Tổng quan click "Retrain toàn bộ" trước.
-      </div>
-
-      <!-- Tải thêm + manual ID -->
-      <div class="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-700 space-y-2">
-        <div class="flex items-center gap-2 flex-wrap text-xs">
-          <span class="text-mute-light dark:text-mute-dark">Thêm mẫu:</span>
-          <template x-for="n in [3, 5, 10, 20]" :key="n">
-            <button @click="loadSampleCustomers(n)"
-              :class="samplePerCluster === n ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200'"
-              class="px-2.5 py-1 rounded text-xs transition" x-text="n + '/cụm'"></button>
+      <!-- Pagination controls -->
+      <div class="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700 flex-wrap text-xs"
+        x-show="currentPage().total > 0">
+        <div class="flex items-center gap-2">
+          <button @click="loadCustomersPage(browseCluster, 1)" :disabled="currentPage().page <= 1 || currentPage().loading"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-zinc-800">«</button>
+          <button @click="loadCustomersPage(browseCluster, currentPage().page - 1)" :disabled="currentPage().page <= 1 || currentPage().loading"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-zinc-800">‹ Trước</button>
+          <span class="px-2">
+            Trang <strong x-text="currentPage().page"></strong>
+            / <span x-text="currentPage().total_pages.toLocaleString()"></span>
+          </span>
+          <button @click="loadCustomersPage(browseCluster, currentPage().page + 1)" :disabled="currentPage().page >= currentPage().total_pages || currentPage().loading"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-zinc-800">Sau ›</button>
+          <button @click="loadCustomersPage(browseCluster, currentPage().total_pages)" :disabled="currentPage().page >= currentPage().total_pages || currentPage().loading"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-zinc-800">»</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-mute-light dark:text-mute-dark">Số khách / trang:</span>
+          <template x-for="n in [10, 20, 50, 100]" :key="n">
+            <button @click="changePageSize(n)"
+              :class="browsePageSize === n ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700'"
+              class="px-2 py-1 rounded transition" x-text="n"></button>
           </template>
         </div>
-
-        <details class="text-xs">
-          <summary class="cursor-pointer text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
-            Hoặc paste 1 customer_id 64 ký tự bất kỳ
-          </summary>
-          <div class="flex gap-2 mt-2 flex-wrap">
-            <input
-              x-model="cidInput"
-              @keydown.enter="lookupCustomer()"
-              placeholder="dán customer_id ở đây"
-              class="flex-1 min-w-[260px] font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
-            <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
-              class="px-3 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
-              <span x-show="!lookingUp">🔍 Tra cứu</span>
-              <span x-show="lookingUp">…</span>
-            </button>
-          </div>
-        </details>
       </div>
+
+      <!-- Manual ID paste -->
+      <details class="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700 text-xs">
+        <summary class="cursor-pointer text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
+          Hoặc paste 1 customer_id 64 ký tự bất kỳ
+        </summary>
+        <div class="flex gap-2 mt-2 flex-wrap">
+          <input
+            x-model="cidInput"
+            @keydown.enter="lookupCustomer()"
+            placeholder="dán customer_id ở đây"
+            class="flex-1 min-w-[260px] font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+          <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
+            class="px-3 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
+            <span x-show="!lookingUp">🔍 Tra cứu</span>
+            <span x-show="lookingUp">…</span>
+          </button>
+        </div>
+      </details>
     </div>
 
     <!-- Results -->
@@ -652,7 +681,6 @@ function app() {
       cluster: true,
       models:  true,
       guide:   true,
-      samples: true,
     },
 
     // Predict state
@@ -660,10 +688,12 @@ function app() {
     customerResult: null,
     customerProfile: null,
     lookingUp: false,
-    sampleCustomers: [],   // mẫu khách / cụm
-    samplePerCluster: 5,
-    browseCluster: 0,      // tab cụm đang xem trong browser
-    clusterLabels: {},     // {0: "Sporty Active", 1: "Menswear", ...}
+
+    // Browser pagination — cache per cluster
+    browseCluster: 0,
+    browsePageSize: 10,
+    pages: {},  // { [cluster_id]: { items, total, page, page_size, total_pages, loading } }
+    clusterLabels: {},  // {0: "Sporty Active", ...}
 
     // Models state
     layerFilter: 'L1_KMEANS',
@@ -695,26 +725,42 @@ function app() {
         this.loadCluster(),
         this.loadModels(),
         this.loadGuide(),
-        this.loadSampleCustomers(),
+        this.loadCustomersPage(this.browseCluster, 1),
       ]);
       this.$watch('tab', t => this.onTabChange(t));
+      this.$watch('browseCluster', cid => {
+        if (!this.pages[cid]) this.loadCustomersPage(cid, 1);
+      });
     },
 
-    async loadSampleCustomers(perCluster) {
-      this.loading.samples = true;
-      const n = perCluster || this.samplePerCluster;
-      this.samplePerCluster = n;
+    async loadCustomersPage(clusterId, page) {
+      // Init / replace cache entry với loading flag
+      const existing = this.pages[clusterId] || { items: [], total: 0, total_pages: 0 };
+      this.pages[clusterId] = { ...existing, page, page_size: this.browsePageSize, loading: true };
       try {
-        const r = await fetch(`/metrics/sample-customers?per_cluster=${n}`);
+        const r = await fetch(`/metrics/customers?cluster_id=${clusterId}&page=${page}&page_size=${this.browsePageSize}`);
         if (r.ok) {
-          this.sampleCustomers = await r.json();
-          // Cache tên cụm để dùng cho tab nav (kể cả khi clusterDist chưa load)
-          for (const c of this.sampleCustomers) {
-            this.clusterLabels[c.cluster_id] = c.cluster_label;
-          }
+          const data = await r.json();
+          this.pages[clusterId] = { ...data, loading: false };
+          // Cache cluster label
+          if (data.items[0]) this.clusterLabels[clusterId] = data.items[0].cluster_label;
+        } else {
+          this.pages[clusterId].loading = false;
         }
-      } catch(e) {}
-      finally { this.loading.samples = false; }
+      } catch(e) {
+        this.pages[clusterId].loading = false;
+      }
+    },
+
+    async changePageSize(n) {
+      this.browsePageSize = n;
+      // Reset cache, fetch page 1 cho cluster hiện tại
+      this.pages = {};
+      await this.loadCustomersPage(this.browseCluster, 1);
+    },
+
+    currentPage() {
+      return this.pages[this.browseCluster] || { items: [], total: 0, page: 1, page_size: this.browsePageSize, total_pages: 0, loading: true };
     },
 
     async loadCustomerProfile(customerId) {
@@ -749,6 +795,8 @@ function app() {
       this.loading.cluster = true;
       try {
         this.clusterDist = await fetch('/metrics/cluster-distribution').then(r => r.json());
+        // Cache labels for browser tabs (Cụm 0/1/2/3/4 → tên thật)
+        for (const c of this.clusterDist) this.clusterLabels[c.cluster_id] = c.cluster_label;
         this.renderClusterChart();
       } catch(e) {}
       finally { this.loading.cluster = false; }
