@@ -223,24 +223,42 @@
     <!-- Search box -->
     <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
       <h3 class="font-semibold mb-3">Tra cứu khách hàng</h3>
-      <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
-        Nhập 1 <code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">customer_id</code> thật từ DB → 3 layer cùng trả lời. Chưa có ID? Click "Lấy ID mẫu".
+
+      <!-- Quick-pick chips theo cụm -->
+      <p class="text-xs text-mute-light dark:text-mute-dark mb-2">
+        Chọn nhanh 1 khách hàng mẫu theo từng cụm phong cách:
+      </p>
+      <div class="flex gap-2 flex-wrap mb-4" x-show="sampleCustomers.length">
+        <template x-for="s in sampleCustomers" :key="s.customer_id">
+          <button @click="pickSample(s)"
+            :class="`cluster-${s.cluster_id} text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-80 transition`"
+            x-text="s.cluster_label"></button>
+        </template>
+      </div>
+      <div x-show="!sampleCustomers.length && !loading.summary" class="text-xs text-amber-600 dark:text-amber-400 mb-3">
+        ⚠ Layer 1 chưa train hoặc <code>customer_clusters</code> rỗng — chưa có mẫu để chọn.
+        Vào tab Tổng quan click "Retrain toàn bộ" trước.
+      </div>
+
+      <!-- Manual ID input -->
+      <p class="text-xs text-mute-light dark:text-mute-dark mb-2">
+        Hoặc dán 1 <code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">customer_id</code> 64-ký-tự bất kỳ:
       </p>
       <div class="flex gap-2 flex-wrap">
         <input
           x-model="cidInput"
           @keydown.enter="lookupCustomer()"
           placeholder="customer_id (64 ký tự hex)"
-          class="flex-1 min-w-[260px] font-mono text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+          class="flex-1 min-w-[260px] font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40">
         <button @click="lookupCustomer()" :disabled="!cidInput || lookingUp"
           class="px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition">
           <span x-show="!lookingUp">🔍 Tra cứu</span>
           <span x-show="lookingUp">Đang load…</span>
         </button>
-        <button @click="loadSampleId()" class="px-3 py-2 rounded-md text-sm text-brand-700 dark:text-brand-100 hover:bg-brand-500/10 transition">
-          🎲 Lấy ID mẫu
-        </button>
       </div>
+      <p x-show="cidInput" class="text-xs text-mute-light dark:text-mute-dark mt-2">
+        Đang tra cứu: <code class="font-mono" x-text="cidInput.length > 16 ? cidInput.slice(0,16)+'…'+cidInput.slice(-8) : cidInput"></code>
+      </p>
     </div>
 
     <!-- Results -->
@@ -523,6 +541,7 @@ function app() {
     cidInput: '',
     customerResult: null,
     lookingUp: false,
+    sampleCustomers: [],   // 1 mẫu / cụm — load 1 lần ở init
 
     // Models state
     layerFilter: 'L1_KMEANS',
@@ -554,8 +573,16 @@ function app() {
         this.loadCluster(),
         this.loadModels(),
         this.loadGuide(),
+        this.loadSampleCustomers(),
       ]);
       this.$watch('tab', t => this.onTabChange(t));
+    },
+
+    async loadSampleCustomers() {
+      try {
+        const r = await fetch('/metrics/sample-customers?per_cluster=1');
+        if (r.ok) this.sampleCustomers = await r.json();
+      } catch(e) { /* silent — UI sẽ show warning nếu rỗng */ }
     },
 
     onTabChange(t) {
@@ -731,19 +758,11 @@ function app() {
       this.lookingUp = false;
     },
 
-    async loadSampleId() {
-      this.toastShow('Đang lấy customer_id mẫu…');
-      try {
-        // Use cluster-distribution + a known cluster — sample one customer per click via predict layers
-        // Backend doesn't have a "random customer" endpoint; we use a hardcoded sample fetcher:
-        const sampleResp = await fetch('/metrics/cluster-distribution');
-        const dist = await sampleResp.json();
-        if (!dist?.length) { this.toastShow('Layer 1 chưa train — không có customer nào trong customer_clusters.'); return; }
-        // We don't have direct API; use a known good customer_id from log
-        // The user can also paste any 64-hex customer_id. For sample, we use the one verified earlier.
-        this.cidInput = 'd9793b30ac8a88a161cb8d690bab119fb9285007a222dedde49b63e9088b660e';
-        this.toastShow('Đã điền 1 customer_id mẫu — click Tra cứu.');
-      } catch(e) { this.toastShow('Không lấy được mẫu: ' + e.message); }
+    pickSample(s) {
+      // Click chip → fill ID + auto-lookup
+      this.cidInput = s.customer_id;
+      this.toastShow(`Đã chọn 1 mẫu thuộc cụm "${s.cluster_label}"`);
+      this.lookupCustomer();
     },
 
     async retrainAll() {

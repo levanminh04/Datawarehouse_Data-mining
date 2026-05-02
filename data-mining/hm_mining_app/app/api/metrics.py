@@ -64,3 +64,24 @@ def cluster_distribution() -> list[dict]:
             ORDER  BY n DESC
         """)).mappings().all()
     return [dict(r) for r in rows]
+
+
+@router.get("/sample-customers")
+def sample_customers(per_cluster: int = 1) -> list[dict]:
+    """Trả về `per_cluster` customer_id mẫu cho mỗi cụm — phục vụ tab Suy luận
+    của dashboard để demo nhanh không cần ngồi nhớ ID hex 64 ký tự.
+    """
+    if per_cluster < 1 or per_cluster > 20:
+        raise HTTPException(400, "per_cluster phải trong khoảng 1-20.")
+    with get_session() as s:
+        rows = s.execute(text("""
+            SELECT customer_id, cluster_id, cluster_label
+            FROM (
+                SELECT customer_id, cluster_id, cluster_label,
+                       ROW_NUMBER() OVER (PARTITION BY cluster_id ORDER BY customer_id) AS rn
+                FROM customer_clusters
+            ) t
+            WHERE rn <= :n
+            ORDER BY cluster_id, rn
+        """), {"n": per_cluster}).mappings().all()
+    return [dict(r) for r in rows]
