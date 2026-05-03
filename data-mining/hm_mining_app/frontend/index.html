@@ -786,29 +786,30 @@ function app() {
     },
 
     // ---------- Charts ----------
+    //
+    // _freshCanvas: clone canvas element trước khi render, replace vào DOM.
+    // Lý do: Chart.js v4 + Safari có bug — sau lần `chart.destroy()`, canvas
+    // cũ getContext('2d') có thể trả null, gây "Cannot read properties of
+    // null (reading 'save')". Tạo fresh canvas mỗi render là cách duy nhất
+    // đảm bảo context mới sạch.
+    _freshCanvas(id) {
+      const old = document.getElementById(id);
+      if (!old) return null;
+      const fresh = old.cloneNode(false);  // shallow clone — không copy chart state
+      old.parentNode.replaceChild(fresh, old);
+      return fresh;
+    },
+
     renderClusterChart() {
-      const ctx = document.getElementById('clusterChart');
-      if (!ctx) {
-        console.warn('[chart] clusterChart canvas not found in DOM');
-        return;
-      }
-      if (!this.clusterDist?.length) {
-        console.warn('[chart] clusterDist empty, skipping render');
-        return;
-      }
-      // Đảm bảo parent đã có dimension trước khi vẽ — nếu canvas là 0×0
-      // (parent display:none hoặc layout chưa xong), Chart.js render rỗng.
-      const parent = ctx.parentElement;
+      if (!this.clusterDist?.length) return;
+      const probe = document.getElementById('clusterChart');
+      if (!probe) return;
+      const parent = probe.parentElement;
       if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
-        console.warn('[chart] parent has 0 size, retrying in 200ms', parent?.offsetWidth, parent?.offsetHeight);
         setTimeout(() => this.renderClusterChart(), 200);
         return;
       }
-      console.log('[chart] rendering clusterChart, parent', parent.offsetWidth, 'x', parent.offsetHeight, 'data', this.clusterDist.length, 'items');
-      // Destroy ANY chart attached to this canvas (kể cả ref em đã mất)
-      // → tránh "Canvas is already in use" / null context lỗi.
-      const prev = Chart.getChart(ctx);
-      if (prev) prev.destroy();
+      const ctx = this._freshCanvas('clusterChart');
       const palette = ['#ba7517','#0f6e56','#534ab7','#a32d2d','#582864','#3a3a37'];
       this.clusterChart = new Chart(ctx, {
         type: 'bar',
@@ -836,18 +837,17 @@ function app() {
     },
 
     renderFeatureChart() {
-      const ctx = document.getElementById('featureImportanceChart');
-      if (!ctx) return;
+      const probe = document.getElementById('featureImportanceChart');
+      if (!probe) return;
       const l3 = this.summary.active_models?.L3_RANDOMFOREST;
       const fi = l3?.metrics?.feature_importance || [];
       if (!fi.length) return;
-      const parent = ctx.parentElement;
+      const parent = probe.parentElement;
       if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
         setTimeout(() => this.renderFeatureChart(), 200);
         return;
       }
-      const prev = Chart.getChart(ctx);
-      if (prev) prev.destroy();
+      const ctx = this._freshCanvas('featureImportanceChart');
       this.featureChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -868,21 +868,20 @@ function app() {
     },
 
     renderRulesChart() {
-      const ctx = document.getElementById('rulesPerClusterChart');
-      if (!ctx) return;
+      const probe = document.getElementById('rulesPerClusterChart');
+      if (!probe) return;
       const l2 = this.summary.active_models?.L2_APRIORI;
       const rpc = l2?.metrics?.rules_count_per_cluster || {};
       const labels = Object.keys(rpc);
       if (!labels.length) return;
-      const parent = ctx.parentElement;
+      const parent = probe.parentElement;
       if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
         setTimeout(() => this.renderRulesChart(), 200);
         return;
       }
       const clusterLabels = {};
       (this.clusterDist || []).forEach(d => clusterLabels[d.cluster_id] = d.cluster_label);
-      const prev = Chart.getChart(ctx);
-      if (prev) prev.destroy();
+      const ctx = this._freshCanvas('rulesPerClusterChart');
       this.rulesChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
