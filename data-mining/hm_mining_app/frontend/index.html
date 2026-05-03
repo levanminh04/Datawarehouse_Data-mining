@@ -788,7 +788,23 @@ function app() {
     // ---------- Charts ----------
     renderClusterChart() {
       const ctx = document.getElementById('clusterChart');
-      if (!ctx || !this.clusterDist?.length) return;
+      if (!ctx) {
+        console.warn('[chart] clusterChart canvas not found in DOM');
+        return;
+      }
+      if (!this.clusterDist?.length) {
+        console.warn('[chart] clusterDist empty, skipping render');
+        return;
+      }
+      // Đảm bảo parent đã có dimension trước khi vẽ — nếu canvas là 0×0
+      // (parent display:none hoặc layout chưa xong), Chart.js render rỗng.
+      const parent = ctx.parentElement;
+      if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
+        console.warn('[chart] parent has 0 size, retrying in 200ms', parent?.offsetWidth, parent?.offsetHeight);
+        setTimeout(() => this.renderClusterChart(), 200);
+        return;
+      }
+      console.log('[chart] rendering clusterChart, parent', parent.offsetWidth, 'x', parent.offsetHeight, 'data', this.clusterDist.length, 'items');
       if (this.clusterChart) this.clusterChart.destroy();
       const palette = ['#ba7517','#0f6e56','#534ab7','#a32d2d','#582864','#3a3a37'];
       this.clusterChart = new Chart(ctx, {
@@ -822,6 +838,11 @@ function app() {
       const l3 = this.summary.active_models?.L3_RANDOMFOREST;
       const fi = l3?.metrics?.feature_importance || [];
       if (!fi.length) return;
+      const parent = ctx.parentElement;
+      if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
+        setTimeout(() => this.renderFeatureChart(), 200);
+        return;
+      }
       if (this.featureChart) this.featureChart.destroy();
       this.featureChart = new Chart(ctx, {
         type: 'bar',
@@ -849,6 +870,11 @@ function app() {
       const rpc = l2?.metrics?.rules_count_per_cluster || {};
       const labels = Object.keys(rpc);
       if (!labels.length) return;
+      const parent = ctx.parentElement;
+      if (!parent || parent.offsetHeight === 0 || parent.offsetWidth === 0) {
+        setTimeout(() => this.renderRulesChart(), 200);
+        return;
+      }
       const clusterLabels = {};
       (this.clusterDist || []).forEach(d => clusterLabels[d.cluster_id] = d.cluster_label);
       if (this.rulesChart) this.rulesChart.destroy();
