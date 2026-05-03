@@ -140,8 +140,8 @@
           <span>Phân bố khách hàng theo cụm</span>
           <span x-show="loading.cluster" class="spinner text-brand-500"></span>
         </h3>
-        <div class="relative" style="min-height:220px">
-          <canvas id="clusterChart" height="220" :class="{ 'opacity-30': loading.cluster }"></canvas>
+        <div class="relative" style="height:240px;">
+          <canvas id="clusterChart" :class="{ 'opacity-30': loading.cluster }"></canvas>
           <div x-show="loading.cluster" class="absolute inset-0 flex items-center justify-center text-sm text-mute-light dark:text-mute-dark">
             Đang load…
           </div>
@@ -491,13 +491,17 @@
       <!-- L3 Feature Importance -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
         <h3 class="font-semibold mb-3">Feature importance (Layer 3)</h3>
-        <canvas id="featureImportanceChart" height="240"></canvas>
+        <div class="relative" style="height:280px;">
+          <canvas id="featureImportanceChart"></canvas>
+        </div>
       </div>
 
       <!-- L2 Rules per cluster -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
         <h3 class="font-semibold mb-3">Số luật Apriori theo cụm</h3>
-        <canvas id="rulesPerClusterChart" height="240"></canvas>
+        <div class="relative" style="height:280px;">
+          <canvas id="rulesPerClusterChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -798,6 +802,7 @@ function app() {
           }]
         },
         options: {
+          responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y.toLocaleString() + ' khách' } } },
           scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() } } }
         }
@@ -829,6 +834,7 @@ function app() {
           }]
         },
         options: {
+          responsive: true, maintainAspectRatio: false,
           indexAxis: 'y',
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x.toFixed(1) + '%' } } },
           scales: { x: { beginAtZero: true, ticks: { callback: v => v + '%' } } }
@@ -857,6 +863,7 @@ function app() {
           }]
         },
         options: {
+          responsive: true, maintainAspectRatio: false,
           plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
         }
       });
