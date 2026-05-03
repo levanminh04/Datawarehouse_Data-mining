@@ -1,7 +1,5 @@
 # H&M Mining App — Hướng dẫn sử dụng
 
-Module này là phần code do **một thành viên Nhóm 01** phụ trách trong bài tập lớn môn _Kho dữ liệu và Khai phá dữ liệu_ (PTIT, năm học 2025–2026, giảng viên: ThS. Nguyễn Quỳnh Chi).
-
 Tài liệu này dành cho **các thành viên khác trong nhóm** muốn cài đặt + chạy + demo app trên máy mình. Đọc theo thứ tự từ trên xuống.
 
 ---
