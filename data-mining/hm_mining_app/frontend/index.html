@@ -805,7 +805,10 @@ function app() {
         return;
       }
       console.log('[chart] rendering clusterChart, parent', parent.offsetWidth, 'x', parent.offsetHeight, 'data', this.clusterDist.length, 'items');
-      if (this.clusterChart) this.clusterChart.destroy();
+      // Destroy ANY chart attached to this canvas (kể cả ref em đã mất)
+      // → tránh "Canvas is already in use" / null context lỗi.
+      const prev = Chart.getChart(ctx);
+      if (prev) prev.destroy();
       const palette = ['#ba7517','#0f6e56','#534ab7','#a32d2d','#582864','#3a3a37'];
       this.clusterChart = new Chart(ctx, {
         type: 'bar',
@@ -843,7 +846,8 @@ function app() {
         setTimeout(() => this.renderFeatureChart(), 200);
         return;
       }
-      if (this.featureChart) this.featureChart.destroy();
+      const prev = Chart.getChart(ctx);
+      if (prev) prev.destroy();
       this.featureChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -877,7 +881,8 @@ function app() {
       }
       const clusterLabels = {};
       (this.clusterDist || []).forEach(d => clusterLabels[d.cluster_id] = d.cluster_label);
-      if (this.rulesChart) this.rulesChart.destroy();
+      const prev = Chart.getChart(ctx);
+      if (prev) prev.destroy();
       this.rulesChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
