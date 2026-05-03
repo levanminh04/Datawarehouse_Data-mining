@@ -679,6 +679,12 @@ function app() {
       this.$watch('browseCluster', cid => {
         if (!this.pages[cid]) this.loadCustomersPage(cid, 1);
       });
+      // Re-render chart bất kỳ lúc nào data dependency của nó thay đổi —
+      // tránh race khi loadModels finishes trước loadSummary (chart bỏ qua
+      // vì feature_importance/rules_count_per_cluster nằm trong summary,
+      // không tự retry khi summary tới sau).
+      this.$watch('clusterDist', () => this.$nextTick(() => this.renderClusterChart()));
+      this.$watch('summary',     () => this.$nextTick(() => this.renderModelsCharts()));
     },
 
     async loadCustomersPage(clusterId, page) {
