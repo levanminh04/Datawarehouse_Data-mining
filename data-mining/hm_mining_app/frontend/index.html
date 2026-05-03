@@ -108,6 +108,16 @@
   <!-- ====================== TAB 1: TỔNG QUAN ====================== -->
   <section x-show="tab === 'overview'" class="space-y-6">
 
+    <!-- Refresh toolbar -->
+    <div class="flex items-center justify-end gap-3 text-xs text-mute-light dark:text-mute-dark -mb-2">
+      <span x-show="lastUpdated">Cập nhật lần cuối: <span class="font-mono" x-text="lastUpdated"></span></span>
+      <button @click="refreshOverview()" :disabled="anyLoading()"
+        class="px-2.5 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-ink-light dark:text-ink-dark hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-wait transition">
+        <span x-show="!anyLoading()">🔄 Làm mới</span>
+        <span x-show="anyLoading()">Đang làm mới…</span>
+      </button>
+    </div>
+
     <!-- 4 stat cards (skeleton khi đang load) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <template x-for="s in overviewStats" :key="s.label">
@@ -649,6 +659,7 @@ function app() {
 
     // UI
     toast: '',
+    lastUpdated: '',  // 'HH:MM:SS' của lần load cuối — show ở toolbar refresh
 
     // Charts
     clusterChart: null,
@@ -725,8 +736,25 @@ function app() {
       this.loading.summary = true;
       try {
         this.summary = await fetch('/metrics/summary').then(r => r.json());
+        this.touchLastUpdated();
       } catch(e) { this.toastShow('Không tải được /metrics/summary'); }
       finally { this.loading.summary = false; }
+    },
+
+    touchLastUpdated() {
+      const d = new Date();
+      this.lastUpdated = d.toTimeString().slice(0,8);
+    },
+
+    async refreshOverview() {
+      // Re-fetch 3 nguồn data của tab Tổng quan song song
+      this.toastShow('Đang làm mới dữ liệu…');
+      await Promise.all([
+        this.loadSummary(),
+        this.loadCluster(),
+        this.loadModels(),
+      ]);
+      this.toastShow('Đã cập nhật');
     },
     async loadCluster() {
       this.loading.cluster = true;
