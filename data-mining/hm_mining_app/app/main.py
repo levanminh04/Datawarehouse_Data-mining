@@ -58,24 +58,13 @@ app.include_router(metrics.router)
 
 
 # Phục vụ frontend tĩnh
-APP_ROOT = Path(__file__).parent.parent
-FRONTEND_DIR = APP_ROOT / "frontend"
-HUONG_DAN_MD = APP_ROOT / "HUONG_DAN.md"
-
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
     @app.get("/", include_in_schema=False)
     def index():
         return FileResponse(str(FRONTEND_DIR / "index.html"))
-
-
-@app.get("/HUONG_DAN.md", include_in_schema=False)
-def huong_dan():
-    """Serve HUONG_DAN.md ở root URL để tab Hướng dẫn fetch render."""
-    if not HUONG_DAN_MD.exists():
-        return {"error": "HUONG_DAN.md không tồn tại — kiểm tra repo"}
-    return FileResponse(str(HUONG_DAN_MD), media_type="text/markdown; charset=utf-8")
 
 
 @app.get("/health", tags=["meta"])

@@ -25,7 +25,6 @@
 
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
 
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -71,27 +70,6 @@
   .topbar::after {
     content: ''; position: absolute; top: 0; bottom: 0;
     background: #534ab7; animation: progress-slide 1.5s infinite ease-in-out;
-  }
-
-  /* Markdown content tweaks */
-  .prose-vi h1 { font-size:1.875rem; font-weight:600; margin: 1.5rem 0 0.75rem; }
-  .prose-vi h2 { font-size:1.375rem; font-weight:600; margin: 1.5rem 0 0.5rem; padding-top:0.5rem; border-top:1px solid #e5e7eb; }
-  .prose-vi h3 { font-size:1.125rem; font-weight:600; margin: 1rem 0 0.4rem; }
-  .prose-vi p, .prose-vi li { line-height: 1.65; }
-  .prose-vi code { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 4px; font-size: 0.875em; }
-  .prose-vi pre { background: #1a1a18; color: #e6e4dd; padding: 12px 16px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
-  .prose-vi pre code { background: transparent; padding: 0; color: inherit; }
-  .prose-vi table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9em; }
-  .prose-vi th, .prose-vi td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
-  .prose-vi th { background: rgba(0,0,0,0.03); font-weight: 600; }
-  .prose-vi ul, .prose-vi ol { padding-left: 1.5rem; margin: 0.5rem 0; }
-  .prose-vi blockquote { border-left: 3px solid #534ab7; padding-left: 1rem; color: #5f5e5a; margin: 1rem 0; }
-  .prose-vi a { color: #534ab7; text-decoration: underline; }
-  @media (prefers-color-scheme: dark) {
-    .prose-vi h2 { border-top-color: #3a3a37; }
-    .prose-vi th, .prose-vi td { border-color: #3a3a37; }
-    .prose-vi th { background: rgba(255,255,255,0.03); }
-    .prose-vi code { background: rgba(255,255,255,0.08); }
   }
 </style>
 </head>
@@ -145,30 +123,19 @@
       </template>
     </div>
 
-    <!-- Báo cáo card -->
-    <div class="bg-brand-500/[0.04] dark:bg-brand-500/[0.08] border border-brand-500/20 rounded-xl p-5">
-      <ul class="space-y-1.5 text-sm">
-        <li><strong class="text-brand-700 dark:text-brand-100">Thu thập liên tục:</strong> endpoint <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">POST /ingest/transactions</code> — gửi giao dịch mới qua HTTP, tự ghi vào <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">transactions</code>. Lần huấn luyện kế tiếp tự học từ giao dịch này.</li>
-        <li><strong class="text-brand-700 dark:text-brand-100">Học liên tục:</strong> APScheduler retrain định kỳ • mỗi version lưu vào <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">model_registry</code> • predict luôn dùng <code class="bg-brand-500/10 px-1.5 py-0.5 rounded text-xs">is_active=TRUE</code> (zero-downtime).</li>
-      </ul>
-    </div>
-
     <!-- Cluster chart + active models side by side -->
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
         <h3 class="font-semibold mb-3 flex items-center gap-2">
-          <span>Phân bố khách hàng theo cụm phong cách</span>
+          <span>Phân bố khách hàng theo cụm</span>
           <span x-show="loading.cluster" class="spinner text-brand-500"></span>
         </h3>
         <div class="relative" style="min-height:220px">
           <canvas id="clusterChart" height="220" :class="{ 'opacity-30': loading.cluster }"></canvas>
           <div x-show="loading.cluster" class="absolute inset-0 flex items-center justify-center text-sm text-mute-light dark:text-mute-dark">
-            Đang load phân bố cụm…
+            Đang load…
           </div>
         </div>
-        <p class="text-xs text-mute-light dark:text-mute-dark mt-3">
-          Layer 1 K-Means trên 7 đặc trưng Fashion DNA — k=5 (chọn theo Elbow, mục 4.1.2).
-        </p>
       </div>
 
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
@@ -514,18 +481,12 @@
       <!-- L3 Feature Importance -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
         <h3 class="font-semibold mb-3">Feature importance (Layer 3)</h3>
-        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
-          Verify với Chương 4.3.3 — RFM (recency, frequency, monetary) chiếm phần lớn trọng số.
-        </p>
         <canvas id="featureImportanceChart" height="240"></canvas>
       </div>
 
       <!-- L2 Rules per cluster -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
         <h3 class="font-semibold mb-3">Số luật Apriori theo cụm</h3>
-        <p class="text-xs text-mute-light dark:text-mute-dark mb-3">
-          Mỗi cụm chạy Apriori riêng (Segment-then-Mine — mục 4.2.2). Family/Moms thường cao nhất.
-        </p>
         <canvas id="rulesPerClusterChart" height="240"></canvas>
       </div>
     </div>
@@ -576,10 +537,6 @@
 
   <!-- ====================== TAB 4: NẠP DỮ LIỆU ====================== -->
   <section x-show="tab === 'ingest'" class="space-y-6">
-
-    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-xl p-4 text-sm">
-      💡 Endpoint <code class="bg-amber-100 dark:bg-amber-700/30 px-1.5 py-0.5 rounded">/ingest/*</code> đáp ứng yêu cầu <strong>"thu thập liên tục"</strong> — sau khi POST, lần retrain kế tiếp sẽ tự học từ dữ liệu mới.
-    </div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <!-- Customer ingest -->
@@ -636,19 +593,6 @@
     </div>
   </section>
 
-  <!-- ====================== TAB 5: HƯỚNG DẪN ====================== -->
-  <section x-show="tab === 'guide'">
-    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 sm:p-8 shadow-card border border-gray-100 dark:border-zinc-700">
-      <div x-show="!guideHtml" class="text-center py-8 text-mute-light dark:text-mute-dark text-sm">Đang tải HUONG_DAN.md…</div>
-      <div x-show="guideError" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-800 dark:text-red-200">
-        <strong>Không load được HUONG_DAN.md.</strong>
-        <span x-text="guideError"></span><br>
-        File phải nằm tại <code>data-mining/hm_mining_app/HUONG_DAN.md</code> và route <code>/HUONG_DAN.md</code> phải có trong main.py.
-      </div>
-      <article class="prose-vi max-w-none" x-html="guideHtml"></article>
-    </div>
-  </section>
-
   <!-- TOAST -->
   <div x-show="toast" x-transition.opacity
     class="fixed bottom-6 right-6 px-4 py-3 rounded-lg bg-zinc-800 text-white text-sm shadow-lg max-w-sm"
@@ -666,7 +610,6 @@ function app() {
       { id:'predict',  label:'Suy luận' },
       { id:'models',   label:'Mô hình' },
       { id:'ingest',   label:'Nạp dữ liệu' },
-      { id:'guide',    label:'Hướng dẫn' },
     ],
 
     // Overview state
@@ -680,7 +623,6 @@ function app() {
       summary: true,
       cluster: true,
       models:  true,
-      guide:   true,
     },
 
     // Predict state
@@ -705,10 +647,6 @@ function app() {
     txJson: '',
     txResult: '',
 
-    // Guide state
-    guideHtml: '',
-    guideError: '',
-
     // UI
     toast: '',
 
@@ -724,7 +662,6 @@ function app() {
         this.loadSummary(),
         this.loadCluster(),
         this.loadModels(),
-        this.loadGuide(),
         this.loadCustomersPage(this.browseCluster, 1),
       ]);
       this.$watch('tab', t => this.onTabChange(t));
@@ -808,17 +745,6 @@ function app() {
         this.renderModelsCharts();
       } catch(e) {}
       finally { this.loading.models = false; }
-    },
-    async loadGuide() {
-      this.loading.guide = true;
-      try {
-        const resp = await fetch('/HUONG_DAN.md');
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const md = await resp.text();
-        this.guideHtml = marked.parse(md, { breaks: true });
-      } catch(e) {
-        this.guideError = e.message;
-      } finally { this.loading.guide = false; }
     },
 
     // ---------- Charts ----------

@@ -104,39 +104,32 @@ Tổng **~25-30 phút** trên DB remote. Lần sau retrain nhanh hơn nhờ inde
 ## 5. Sử dụng dashboard
 
 ### Tab "Tổng quan"
+
 - 4 chỉ số tổng: số khách hàng, số sản phẩm, số giao dịch, số đã phân cụm
 - Biểu đồ phân bố khách theo 5 cụm phong cách
 - Bảng 3 mô hình đang `is_active=TRUE`
 - Nút "Retrain toàn bộ ngay"
 
 ### Tab "Suy luận"
-Nhập **customer_id** thật → xem 3 thông tin:
-- **Cụm phong cách** (Layer 1) — 1 trong 5 nhóm
-- **Top-5 sản phẩm gợi ý** (Layer 2) — Apriori riêng theo cụm
-- **Xác suất mua 7 ngày tới** (Layer 3) — kèm interpret thấp/cao
 
-Lấy customer_id thật bằng SQL:
-```sql
-SELECT customer_id FROM customer_clusters LIMIT 5;
-```
-
-Hoặc click nút "Lấy ID mẫu" trên tab Suy luận, app tự fetch.
+- Browser khách theo cụm — 5 tab cụm, mỗi tab paginated với info: ID, tuổi, club status, số giao dịch, chi tiêu, ngày mua cuối
+- Click 1 row → fetch 4 thứ song song: profile + cluster + recommendations + xác suất mua
+- Hoặc paste 1 customer_id 64 ký tự bất kỳ ở phần collapsed dưới
 
 ### Tab "Mô hình"
-Lịch sử các version theo từng layer — đáp ứng "học liên tục":
-- Bảng version: timestamp, số mẫu train, cutoff_date, ACTIVE flag
-- Biểu đồ feature importance của Layer 3 (verify với Chương 4.3.3 báo cáo)
-- Pie chart số luật Apriori theo từng cụm
+
+- Biểu đồ feature importance Layer 3
+- Pie chart số luật Apriori theo cụm
+- Bảng lịch sử versions theo từng layer (đánh dấu ACTIVE)
 
 ### Tab "Nạp dữ liệu"
+
 2 form tương ứng 2 endpoint:
+
 - `POST /ingest/customer` — tạo / update 1 khách hàng
-- `POST /ingest/transactions` — gửi batch giao dịch (≤10k / lần)
+- `POST /ingest/transactions` — batch giao dịch (≤10k / lần)
 
-Demo cô: nhập 1 giao dịch giả → click POST → quay lại tab Tổng quan → số giao dịch tăng → click Retrain → mô hình mới học được giao dịch đó.
-
-### Tab "Hướng dẫn"
-Chính là tài liệu này, render sẵn trong app.
+Demo: nhập 1 giao dịch giả → POST → quay lại Tổng quan → số giao dịch tăng → Retrain → mô hình mới học được giao dịch đó.
 
 ---
 
