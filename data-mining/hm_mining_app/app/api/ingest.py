@@ -17,31 +17,60 @@ router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 @router.post("/customer", status_code=status.HTTP_201_CREATED)
 def ingest_customer(payload: CustomerIn) -> dict:
-    """Đăng ký khách hàng. Idempotent — đã tồn tại thì update."""
-    sql = text("""
-        INSERT INTO customers (customer_id, age, club_member_status,
-                               fashion_news_frequency, postal_code)
-        VALUES (:customer_id, :age, :club_member_status,
-                :fashion_news_frequency, :postal_code)
-        ON CONFLICT (customer_id) DO UPDATE
-        SET age = COALESCE(EXCLUDED.age, customers.age),
-            club_member_status = COALESCE(EXCLUDED.club_member_status, customers.club_member_status),
-            fashion_news_frequency = COALESCE(EXCLUDED.fashion_news_frequency, customers.fashion_news_frequency),
-            postal_code = COALESCE(EXCLUDED.postal_code, customers.postal_code)
-    """)
+    """Đăng ký khách hàng. Idempotent — đã tồn tại thì update.
+
+    Note: bảng `customers` trên DB không có UNIQUE/PRIMARY KEY trên
+    customer_id (do load CSV không cast constraint), nên không dùng
+    được `ON CONFLICT`. Dùng SELECT-then-INSERT-or-UPDATE thay thế.
+    """
+    data = payload.model_dump()
     with get_session() as s:
-        s.execute(sql, payload.model_dump())
-    return {"status": "ok", "customer_id": payload.customer_id}
+        exists = s.execute(
+            text("SELECT 1 FROM customers WHERE customer_id = :customer_id"),
+            {"customer_id": payload.customer_id},
+        ).first() is not None
+
+        if exists:
+            s.execute(text("""
+                UPDATE customers
+                SET age                    = COALESCE(:age, age),
+                    club_member_status     = COALESCE(:club_member_status, club_member_status),
+                    fashion_news_frequency = COALESCE(:fashion_news_frequency, fashion_news_frequency),
+                    postal_code            = COALESCE(:postal_code, postal_code)
+                WHERE customer_id = :customer_id
+            """), data)
+            action = "updated"
+        else:
+            s.execute(text("""
+                INSERT INTO customers (customer_id, age, club_member_status,
+                                       fashion_news_frequency, postal_code)
+                VALUES (:customer_id, :age, :club_member_status,
+                        :fashion_news_frequency, :postal_code)
+            """), data)
+            action = "inserted"
+    return {"status": "ok", "action": action, "customer_id": payload.customer_id}
 
 
 @router.post("/transactions", status_code=status.HTTP_201_CREATED)
 def ingest_transactions(payload: TransactionBatchIn) -> dict:
-    """Insert hàng loạt giao dịch. FK đến customers/articles phải tồn tại."""
-    rows = [t.model_dump() for t in payload.transactions]
+    """Insert hàng loạt giao dịch. customer_id/article_id phải tồn tại.
 
-    # Kiểm tra trước customer_id và article_id còn thiếu
+    Note: cột `articles.article_id` trên DB là INTEGER (do load CSV của
+    levanminh04). Pydantic schema chấp nhận str cho thân thiện input,
+    nhưng app cast sang int trước khi query/INSERT.
+    """
+    rows = [t.model_dump() for t in payload.transactions]
+    for r in rows:
+        try:
+            r["article_id"] = int(r["article_id"])
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"article_id phải parse được sang số nguyên: {r['article_id']!r}",
+            )
+
     customer_ids = {r["customer_id"] for r in rows}
-    article_ids = {r["article_id"] for r in rows}
+    article_ids  = {r["article_id"] for r in rows}
     with get_session() as s:
         existing_customers = {
             row[0] for row in s.execute(
@@ -57,14 +86,14 @@ def ingest_transactions(payload: TransactionBatchIn) -> dict:
         }
 
     missing_customers = customer_ids - existing_customers
-    missing_articles = article_ids - existing_articles
+    missing_articles  = article_ids - existing_articles
     if missing_customers or missing_articles:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
-                "message": "Một số customer_id hoặc article_id chưa tồn tại — hãy gọi /ingest/customer trước.",
+                "message": "Một số customer_id hoặc article_id chưa tồn tại — hãy gọi /ingest/customer trước hoặc check article_id.",
                 "missing_customers": sorted(missing_customers)[:20],
-                "missing_articles": sorted(missing_articles)[:20],
+                "missing_articles":  [str(a) for a in sorted(missing_articles)[:20]],
             },
         )
 
