@@ -1,0 +1,112 @@
+<mxfile host="app.diagrams.net" version="22.1.16">
+  <diagram name="Vòng lặp học liên tục" id="hinh-5-5">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 3 SWIMLANES -->
+        <mxCell id="lane-ext" value="&lt;b&gt;Bên ngoài&lt;/b&gt;&lt;br/&gt;(Client, Cron)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;swimlaneFillColor=#dae8fc;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="1040" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-app" value="&lt;b&gt;FastAPI Application&lt;/b&gt;" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;swimlaneFillColor=#fff2cc;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="200" width="1040" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-store" value="&lt;b&gt;Persistent Storage&lt;/b&gt;&lt;br/&gt;(PostgreSQL + filesystem)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;swimlaneFillColor=#d5e8d4;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="490" width="1040" height="270" as="geometry" />
+        </mxCell>
+
+        <!-- LANE 1: External -->
+        <mxCell id="ext-client" value="&lt;b&gt;Client&lt;/b&gt;&lt;br/&gt;(dashboard, curl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext-cron" value="&lt;b&gt;APScheduler cron&lt;/b&gt;&lt;br/&gt;L1+L2: Sun 02–03h&lt;br/&gt;L3: daily 01h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- LANE 2: Application steps -->
+        <mxCell id="app-ingest" value="&lt;b&gt;1. POST /ingest/transactions&lt;/b&gt;&lt;br/&gt;Validate, batch INSERT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app-predict" value="&lt;b&gt;2. GET /predict/*&lt;/b&gt;&lt;br/&gt;Load active model&lt;br/&gt;Trả kết quả + ghi log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app-train" value="&lt;b&gt;3. Retrain pipeline&lt;/b&gt;&lt;br/&gt;SQL extract → fit model&lt;br/&gt;→ save .joblib&lt;br/&gt;→ INSERT model_registry&lt;br/&gt;→ swap is_active (atomic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="230" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app-drift" value="&lt;b&gt;4. Drift detector&lt;/b&gt;&lt;br/&gt;(hướng phát triển)&lt;br/&gt;So sánh prediction_log&lt;br/&gt;với transactions thực tế" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="240" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- LANE 3: Storage -->
+        <mxCell id="store-tx" value="&lt;b&gt;transactions&lt;/b&gt;&lt;br/&gt;(append-only)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="540" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="store-models" value="&lt;b&gt;model_registry&lt;/b&gt;&lt;br/&gt;version, metrics,&lt;br/&gt;is_active flag" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="540" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="store-fs" value="&lt;b&gt;models_store/&lt;/b&gt;&lt;br/&gt;L1/L2/L3.joblib" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;tabWidth=40;tabHeight=15;" vertex="1" parent="1">
+          <mxGeometry x="660" y="540" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="store-log" value="&lt;b&gt;prediction_log&lt;/b&gt;&lt;br/&gt;customer_id, predicted,&lt;br/&gt;model_version, ts" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="650" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ARROWS -->
+        <mxCell id="a1" value="HTTP" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="ext-client" target="app-ingest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a2" value="HTTP" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="ext-client" target="app-predict">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a3" value="trigger" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;dashed=1;" edge="1" parent="1" source="ext-cron" target="app-train">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a4" value="INSERT" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;strokeColor=#d79b00;" edge="1" parent="1" source="app-ingest" target="store-tx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a5" value="SELECT (đọc + cluster)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;startArrow=classic;startFill=1;" edge="1" parent="1" source="app-train" target="store-tx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a6" value="save artifact" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="app-train" target="store-fs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a7" value="INSERT + UPDATE&#xa;is_active" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="app-train" target="store-models">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a8" value="load active" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;startArrow=classic;startFill=1;" edge="1" parent="1" source="app-predict" target="store-models">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a9" value="INSERT log" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;strokeColor=#82b366;" edge="1" parent="1" source="app-predict" target="store-log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a10" value="SELECT JOIN" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;dashed=1;startArrow=classic;startFill=1;" edge="1" parent="1" source="app-drift" target="store-log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a11" value="trigger ngoài lịch" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;fontSize=10;dashed=1;" edge="1" parent="1" source="app-drift" target="app-train">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
