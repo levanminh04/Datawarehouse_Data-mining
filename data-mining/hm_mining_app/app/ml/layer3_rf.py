@@ -93,12 +93,100 @@ def train_random_forest(
         "dtree": dtree,
         "feature_cols": feature_cols,
     }
+    metrics["training_mode"] = "batch"
     info = registry.save_model(
         layer="L3_RANDOMFOREST",
         artifact=artifact,
         metrics=metrics,
         n_samples_train=len(X_train),
         cutoff_date=str(used_cutoff),
+        is_incremental=False,
+    )
+    return {**info, "metrics": metrics}
+
+
+def train_rf_incremental(
+    n_new_trees: int = 20,
+    cutoff_date: date | None = None,
+    sample_size: int | None = None,
+    window_days: int | None = None,
+    random_state: int = 42,
+) -> dict:
+    """Học tiếp (incremental) — load RF active, dùng warm_start để THÊM
+    n_new_trees cây mới vào ensemble. Cây cũ giữ nguyên, chỉ cây mới fit
+    trên data hiện tại.
+    """
+    loaded = registry.load_active_model("L3_RANDOMFOREST")
+    if loaded is None:
+        raise ValueError(
+            "Chưa có phiên bản L3 active để học tiếp. "
+            "Gọi train_random_forest() trước để có model nền (cold start)."
+        )
+    artifact, parent_row = loaded
+    parent_version = parent_row["version"]
+
+    rf: RandomForestClassifier = artifact["rf"]
+    feature_cols = artifact["feature_cols"]
+
+    sample_size = sample_size or settings.RF_SAMPLE_SIZE
+    window_days = window_days or settings.RF_PREDICTION_WINDOW_DAYS
+
+    X, y, used_cutoff = build_l3_dataset(
+        cutoff_date=cutoff_date,
+        window_days=window_days,
+        sample_size=sample_size,
+    )
+    # Sắp xếp cột khớp với feature_cols cũ (đề phòng order khác)
+    X = X[feature_cols]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=random_state, stratify=y,
+    )
+
+    # CORE: warm_start=True + tăng n_estimators → fit chỉ thêm n_new_trees cây
+    n_old = rf.n_estimators
+    rf.set_params(warm_start=True, n_estimators=n_old + n_new_trees)
+    rf.fit(X_train.values, y_train.values)
+
+    # Đánh giá lại trên test
+    proba = rf.predict_proba(X_test.values)[:, 1]
+    pred = (proba >= 0.5).astype(int)
+    auc = float(roc_auc_score(y_test, proba))
+    p, r, f1, _ = precision_recall_fscore_support(y_test, pred, average=None, zero_division=0)
+
+    feature_importance = sorted(
+        [{"feature": f, "importance": float(imp)}
+         for f, imp in zip(feature_cols, rf.feature_importances_)],
+        key=lambda d: d["importance"], reverse=True,
+    )
+
+    metrics = {
+        "auc": auc,
+        "precision_class1": float(p[1]) if len(p) > 1 else 0.0,
+        "recall_class1":    float(r[1]) if len(r) > 1 else 0.0,
+        "f1_class1":        float(f1[1]) if len(f1) > 1 else 0.0,
+        "positive_rate":    float(y.mean()),
+        "feature_importance": feature_importance,
+        "window_days": window_days,
+        "training_mode": "incremental",
+        "n_trees_before": n_old,
+        "n_trees_after":  rf.n_estimators,
+        "n_new_trees":    n_new_trees,
+        "parent_version": parent_version,
+    }
+    artifact_new = {
+        "rf": rf,
+        "dtree": artifact.get("dtree"),  # giữ nguyên dtree cũ — chỉ để diễn giải
+        "feature_cols": feature_cols,
+    }
+    info = registry.save_model(
+        layer="L3_RANDOMFOREST",
+        artifact=artifact_new,
+        metrics=metrics,
+        n_samples_train=len(X_train),
+        cutoff_date=str(used_cutoff),
+        parent_version=parent_version,
+        is_incremental=True,
     )
     return {**info, "metrics": metrics}
 

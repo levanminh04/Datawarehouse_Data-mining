@@ -161,10 +161,15 @@ curl $HOST/metrics/summary
 curl $HOST/metrics/cluster-distribution
 curl $HOST/metrics/models/L3_RANDOMFOREST
 
-# Retrain
+# Retrain — HỌC LẠI (batch, reset state, fit từ đầu)
 curl -X POST $HOST/retrain/all
 curl -X POST $HOST/retrain/layer1     # chỉ L1
 curl -X POST $HOST/retrain/layer3     # chỉ L3 (nhanh nhất)
+
+# Incremental — HỌC TIẾP (giữ state cũ, partial_fit / warm_start)
+curl -X POST $HOST/retrain/incremental/all      # L1 + L3 (L2 skip vì Apriori batch)
+curl -X POST $HOST/retrain/incremental/layer1   # L1 partial_fit (MiniBatchKMeans)
+curl -X POST $HOST/retrain/incremental/layer3   # L3 warm_start (thêm 20 cây)
 
 # Ingest
 curl -X POST $HOST/ingest/customer \

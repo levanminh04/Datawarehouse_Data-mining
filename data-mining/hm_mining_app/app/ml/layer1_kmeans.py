@@ -11,7 +11,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 from psycopg2.extras import execute_values
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import StandardScaler
 from sqlalchemy import text
 
@@ -41,7 +41,9 @@ def train_kmeans(
     sample_size: int | None = None,
     random_state: int = 42,
 ) -> dict:
-    """Huấn luyện K-Means trên một mẫu, sau đó GÁN cụm cho TOÀN BỘ khách hàng."""
+    """Huấn luyện K-Means BATCH (học lại từ đầu) — reset mọi state, fit lại
+    trên sample mới. Dùng MiniBatchKMeans để cùng class với incremental.
+    """
     n_clusters = n_clusters or settings.KMEANS_N_CLUSTERS
     sample_size = sample_size or settings.KMEANS_SAMPLE_SIZE
     cutoff = latest_cutoff_date()
@@ -52,7 +54,12 @@ def train_kmeans(
     scaler = StandardScaler().fit(X)
     Xs = scaler.transform(X)
 
-    km = KMeans(n_clusters=n_clusters, n_init=10, random_state=random_state)
+    km = MiniBatchKMeans(
+        n_clusters=n_clusters,
+        n_init=10,
+        random_state=random_state,
+        batch_size=10_000,
+    )
     km.fit(Xs)
 
     # 2. Đặt tên cụm dựa trên centroid (đã chuẩn hoá ngược)
@@ -71,6 +78,7 @@ def train_kmeans(
         "sample_size": int(len(df_sample)),
         "n_total_assigned": int(n_total),
         "cluster_labels": cluster_labels,
+        "training_mode": "batch",
     }
     artifact = {
         "kmeans": km,
@@ -84,6 +92,80 @@ def train_kmeans(
         metrics=metrics,
         n_samples_train=len(df_sample),
         cutoff_date=str(cutoff),
+        is_incremental=False,
+    )
+    return {**info, "metrics": metrics}
+
+
+def train_kmeans_incremental(
+    sample_size: int = 50_000,
+    random_state: int = 42,
+) -> dict:
+    """Học tiếp (incremental) — giữ centroid cũ, dùng partial_fit cập nhật
+    với batch mới. KHÔNG reset state, chỉ "nudge" centroid theo data hiện tại.
+
+    Yêu cầu: phải có 1 phiên bản L1 active từ trước (sản phẩm của train_kmeans).
+    Nếu chưa có model active, raise ValueError — caller phải gọi train_kmeans()
+    trước (cold start).
+    """
+    loaded = registry.load_active_model("L1_KMEANS")
+    if loaded is None:
+        raise ValueError(
+            "Chưa có phiên bản L1 active để học tiếp. "
+            "Gọi train_kmeans() trước để có model nền (cold start)."
+        )
+    artifact, parent_row = loaded
+    parent_version = parent_row["version"]
+
+    km: MiniBatchKMeans = artifact["kmeans"]
+    scaler: StandardScaler = artifact["scaler"]
+    cluster_labels: dict = artifact["cluster_labels"]
+
+    cutoff = latest_cutoff_date()
+    df_batch = extract_customer_features(
+        cutoff, sample_size=sample_size, random_state=random_state,
+    )
+    if df_batch.empty:
+        raise ValueError("Không có data để học tiếp.")
+
+    Xs = scaler.transform(df_batch[FEATURE_COLS].values)
+
+    # CORE: partial_fit — giữ centroid cũ, dịch theo data mới
+    km.partial_fit(Xs)
+
+    # Re-label centroid sau khi update (có thể cụm dịch chuyển nhẹ)
+    centroids_orig = scaler.inverse_transform(km.cluster_centers_)
+    new_labels: dict[int, str] = {}
+    for cid in range(km.n_clusters):
+        c_dict = {col: float(centroids_orig[cid, i]) for i, col in enumerate(FEATURE_COLS)}
+        new_labels[cid] = _label_cluster(c_dict)
+
+    # Re-assign cluster_id cho toàn bộ khách hàng (vì centroid đã dịch)
+    n_total = _assign_all_customers(km, scaler, new_labels, cutoff)
+
+    metrics = {
+        "n_clusters": km.n_clusters,
+        "inertia_sample": float(km.inertia_),
+        "sample_size": int(len(df_batch)),
+        "n_total_assigned": int(n_total),
+        "cluster_labels": new_labels,
+        "training_mode": "incremental",
+        "parent_version": parent_version,
+    }
+    artifact_new = {
+        "kmeans": km,
+        "scaler": scaler,  # scaler không đổi
+        "feature_cols": FEATURE_COLS,
+        "cluster_labels": new_labels,
+    }
+    info = registry.save_model(
+        layer="L1_KMEANS",
+        artifact=artifact_new,
+        metrics=metrics,
+        n_samples_train=len(df_batch),
+        cutoff_date=str(cutoff),
+        parent_version=parent_version,
+        is_incremental=True,
     )
     return {**info, "metrics": metrics}
 

@@ -35,8 +35,15 @@ def save_model(
     metrics: dict,
     n_samples_train: int | None = None,
     cutoff_date: str | None = None,
+    parent_version: str | None = None,
+    is_incremental: bool = False,
 ) -> dict:
-    """Lưu file joblib + ghi vào model_registry, đánh dấu phiên bản này active."""
+    """Lưu file joblib + ghi vào model_registry, đánh dấu phiên bản này active.
+
+    parent_version + is_incremental phục vụ "học tiếp" (incremental learning):
+    nếu version này dẫn xuất từ model cũ (qua partial_fit / warm_start) thì
+    parent_version trỏ tới phiên bản gốc, is_incremental=TRUE.
+    """
     if layer not in VALID_LAYERS:
         raise ValueError(f"layer phải thuộc {VALID_LAYERS}, nhận {layer!r}")
 
@@ -56,10 +63,12 @@ def save_model(
         s.execute(
             text("""
                 INSERT INTO model_registry
-                    (layer, version, artifact_path, metrics, n_samples_train, cutoff_date, is_active)
+                    (layer, version, artifact_path, metrics, n_samples_train,
+                     cutoff_date, is_active, parent_version, is_incremental)
                 VALUES
                     (:layer, :version, :artifact_path, CAST(:metrics AS JSONB),
-                     :n_samples_train, :cutoff_date, TRUE)
+                     :n_samples_train, :cutoff_date, TRUE,
+                     :parent_version, :is_incremental)
             """),
             {
                 "layer": layer,
@@ -68,10 +77,18 @@ def save_model(
                 "metrics": json.dumps(metrics),
                 "n_samples_train": n_samples_train,
                 "cutoff_date": cutoff_date,
+                "parent_version": parent_version,
+                "is_incremental": is_incremental,
             },
         )
 
-    return {"layer": layer, "version": version, "artifact_path": str(artifact_path)}
+    return {
+        "layer": layer,
+        "version": version,
+        "artifact_path": str(artifact_path),
+        "parent_version": parent_version,
+        "is_incremental": is_incremental,
+    }
 
 
 def load_active_model(layer: str) -> tuple[Any, dict] | None:

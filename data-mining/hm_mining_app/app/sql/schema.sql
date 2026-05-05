@@ -88,6 +88,13 @@ CREATE TABLE IF NOT EXISTS model_registry (
 CREATE INDEX IF NOT EXISTS idx_mr_layer_active ON model_registry(layer, is_active);
 CREATE INDEX IF NOT EXISTS idx_mr_layer_created ON model_registry(layer, created_at DESC);
 
+-- Bổ sung 2 cột phục vụ "học tiếp" (incremental learning):
+--   parent_version  — version của model gốc nếu phiên bản này dẫn xuất từ model cũ
+--   is_incremental — TRUE nếu dùng partial_fit / warm_start (giữ state cũ),
+--                    FALSE nếu fit từ đầu (học lại / batch retrain)
+ALTER TABLE model_registry ADD COLUMN IF NOT EXISTS parent_version VARCHAR(40);
+ALTER TABLE model_registry ADD COLUMN IF NOT EXISTS is_incremental BOOLEAN DEFAULT FALSE;
+
 -- 6. Nhật ký dự đoán (continuous learning feedback) ----------------
 -- Khi BE trả 1 dự đoán, ghi vào đây. Sau N ngày so với t_dat thực tế
 -- để tính accuracy "drift" của mô hình → trigger retrain nếu giảm.

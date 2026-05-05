@@ -1,83 +1,64 @@
-<mxfile host="app.diagrams.net" version="22.1.16">
-  <diagram name="Kiến trúc tổng quan" id="hinh-5-1">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <!-- CLIENT layer -->
-        <mxCell id="client" value="&lt;b&gt;Client&lt;/b&gt;&lt;br/&gt;Browser dashboard / curl / Postman&lt;br/&gt;(HTTP/JSON)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="280" y="40" width="280" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- FASTAPI container -->
-        <mxCell id="fastapi" value="&lt;b&gt;FastAPI Application (Python 3.11, uvicorn)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;align=center;" vertex="1" parent="1">
-          <mxGeometry x="80" y="160" width="680" height="320" as="geometry" />
-        </mxCell>
-
-        <!-- 4 router groups -->
-        <mxCell id="r-predict" value="&lt;b&gt;/predict/*&lt;/b&gt;&lt;br/&gt;cluster, recommend,&lt;br/&gt;will-buy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="100" y="200" width="150" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="r-ingest" value="&lt;b&gt;/ingest/*&lt;/b&gt;&lt;br/&gt;customer, transactions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="270" y="200" width="150" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="r-metrics" value="&lt;b&gt;/metrics/*&lt;/b&gt;&lt;br/&gt;summary, models,&lt;br/&gt;customers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="440" y="200" width="150" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="r-retrain" value="&lt;b&gt;/retrain/*&lt;/b&gt;&lt;br/&gt;layer1, layer2, layer3,&lt;br/&gt;all" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="610" y="200" width="140" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- ML modules -->
-        <mxCell id="ml" value="&lt;b&gt;ML modules&lt;/b&gt;&lt;br/&gt;layer1_kmeans • layer2_apriori • layer3_rf&lt;br/&gt;features (SQL extract) • registry (versioning)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="100" y="290" width="490" height="70" as="geometry" />
-        </mxCell>
-
-        <!-- Scheduler -->
-        <mxCell id="sched" value="&lt;b&gt;APScheduler&lt;/b&gt;&lt;br/&gt;Cron jobs:&lt;br/&gt;L1+L2: Sun 02–03h&lt;br/&gt;L3: daily 01h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="610" y="290" width="140" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- Database driver note -->
-        <mxCell id="db-driver" value="SQLAlchemy 2.0 + psycopg2&lt;br/&gt;(connection pool)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="100" y="400" width="490" height="40" as="geometry" />
-        </mxCell>
-
-        <!-- POSTGRESQL -->
-        <mxCell id="pg" value="&lt;b&gt;PostgreSQL (remote, AWS Sydney)&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="80" y="540" width="380" height="220" as="geometry" />
-        </mxCell>
-        <mxCell id="pg-hm" value="&lt;b&gt;Bảng H&amp;M (do thành viên khác load)&lt;/b&gt;&lt;br/&gt;customers (1.37M) • articles (105k) • transactions (31.8M)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="100" y="600" width="340" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="pg-app" value="&lt;b&gt;Bảng nội bộ của app&lt;/b&gt;&lt;br/&gt;customer_clusters • model_registry • prediction_log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="100" y="680" width="340" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- FILE STORE -->
-        <mxCell id="fs" value="&lt;b&gt;Filesystem&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;models_store/&lt;br/&gt;├── L1_KMEANS/v*.joblib&lt;br/&gt;├── L2_APRIORI/v*.joblib&lt;br/&gt;└── L3_RF/v*.joblib" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;verticalAlign=top;align=left;tabWidth=80;tabHeight=20;" vertex="1" parent="1">
-          <mxGeometry x="500" y="540" width="260" height="220" as="geometry" />
-        </mxCell>
-
-        <!-- ARROWS -->
-        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="client" target="r-metrics">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="e2" value="đọc + ghi" style="endArrow=classic;html=1;rounded=0;startArrow=classic;startFill=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="ml" target="pg">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="e3" value="lưu artifact" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="ml" target="fs">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="e4" value="trigger" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;fontSize=10;" edge="1" parent="1" source="sched" target="ml">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="Kiến trúc tổng quan" id="hinh-5-1">
+        <mxGraphModel dx="1108" dy="890" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="" style="group" vertex="1" connectable="0" parent="1">
+                    <mxGeometry x="80" y="10" width="730" height="750" as="geometry"/>
+                </mxCell>
+                <mxCell id="client" value="&lt;b&gt;Client&lt;/b&gt;&lt;br/&gt;Browser dashboard / curl / Postman&lt;br/&gt;(HTTP/JSON)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" parent="2" vertex="1">
+                    <mxGeometry x="214.7058823529412" width="300.5882352941177" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="fastapi" value="&lt;b&gt;FastAPI Application (Python 3.11, uvicorn)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;align=center;" parent="2" vertex="1">
+                    <mxGeometry y="124.99999999999999" width="730" height="333.3333333333333" as="geometry"/>
+                </mxCell>
+                <mxCell id="r-predict" value="&lt;b&gt;/predict/*&lt;/b&gt;&lt;br/&gt;cluster, recommend,&lt;br/&gt;will-buy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="21.470588235294116" y="166.66666666666666" width="161.02941176470588" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="r-ingest" value="&lt;b&gt;/ingest/*&lt;/b&gt;&lt;br/&gt;customer, transactions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="203.97058823529414" y="166.66666666666666" width="161.02941176470588" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="r-metrics" value="&lt;b&gt;/metrics/*&lt;/b&gt;&lt;br/&gt;summary, models,&lt;br/&gt;customers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="386.47058823529414" y="166.66666666666666" width="161.02941176470588" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="r-retrain" value="&lt;b&gt;/retrain/*&lt;/b&gt;&lt;br/&gt;layer1, layer2, layer3,&lt;br/&gt;all" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="568.9705882352941" y="166.66666666666666" width="150.29411764705884" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="ml" value="&lt;b&gt;ML modules&lt;/b&gt;&lt;br/&gt;layer1_kmeans • layer2_apriori • layer3_rf&lt;br/&gt;features (SQL extract) • registry (versioning)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="21.47" y="270" width="448.53" height="63.33" as="geometry"/>
+                </mxCell>
+                <mxCell id="sched" value="&lt;b&gt;APScheduler&lt;/b&gt;&lt;br/&gt;Cron jobs:&lt;br/&gt;L1+L2: Sun 02–03h&lt;br/&gt;L3: daily 01h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="2" vertex="1">
+                    <mxGeometry x="568.9705882352941" y="260.41666666666663" width="150.29411764705884" height="104.16666666666667" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-driver" value="SQLAlchemy 2.0 + psycopg2&lt;br/&gt;(connection pool)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;dashed=1;" parent="2" vertex="1">
+                    <mxGeometry x="101.98058823529412" y="410" width="526.0294117647059" height="41.666666666666664" as="geometry"/>
+                </mxCell>
+                <mxCell id="pg" value="&lt;b&gt;PostgreSQL (remote, AWS Sydney)&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=top;" parent="2" vertex="1">
+                    <mxGeometry y="520.8333333333333" width="407.9411764705883" height="229.16666666666666" as="geometry"/>
+                </mxCell>
+                <mxCell id="pg-hm" value="&lt;b&gt;Bảng H&amp;amp;M&lt;/b&gt;&lt;br&gt;customers (1.37M) • articles (105k) • transactions (31.8M)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" parent="2" vertex="1">
+                    <mxGeometry x="21.470588235294116" y="583.3333333333334" width="365" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="pg-app" value="&lt;b&gt;Bảng nội bộ của app&lt;/b&gt;&lt;br/&gt;customer_clusters • model_registry • prediction_log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" parent="2" vertex="1">
+                    <mxGeometry x="21.470588235294116" y="666.6666666666666" width="365" height="62.49999999999999" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs" value="&lt;b&gt;Filesystem&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;models_store/&lt;br/&gt;├── L1_KMEANS/v*.joblib&lt;br/&gt;├── L2_APRIORI/v*.joblib&lt;br/&gt;└── L3_RF/v*.joblib" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;verticalAlign=top;align=left;tabWidth=80;tabHeight=20;" parent="2" vertex="1">
+                    <mxGeometry x="460" y="520.83" width="270" height="99.17" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" parent="2" source="client" target="r-metrics" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" value="đọc + ghi" style="endArrow=classic;html=1;rounded=0;startArrow=classic;startFill=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=10;" parent="2" source="ml" target="pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="lưu artifact" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=10;" parent="2" source="ml" target="fs" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="trigger" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;fontSize=10;" parent="2" source="sched" target="ml" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
