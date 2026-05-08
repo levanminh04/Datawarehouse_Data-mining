@@ -535,6 +535,7 @@
               <th class="text-left py-2 px-2">Cutoff</th>
               <th class="text-center py-2 px-2">Active</th>
               <th class="text-left py-2 px-2">Chỉ số chính</th>
+              <th class="text-center py-2 px-2">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -549,9 +550,16 @@
                   <span x-show="!m.is_active" class="text-xs text-mute-light dark:text-mute-dark">—</span>
                 </td>
                 <td class="py-2 px-2 text-xs" x-html="formatMetricsHtml(layerFilter, m.metrics)"></td>
+                <td class="py-2 px-2 text-center">
+                  <button x-show="!m.is_active" @click="activateModel(m.version)"
+                    class="text-xs px-2 py-0.5 rounded-md border border-indigo-300 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-500 dark:text-indigo-300 dark:hover:bg-indigo-900/30">
+                    Kích hoạt
+                  </button>
+                  <span x-show="m.is_active" class="text-xs text-mute-light dark:text-mute-dark italic">đang dùng</span>
+                </td>
               </tr>
             </template>
-            <tr x-show="!modelsList.length"><td colspan="6" class="text-center py-6 text-sm text-mute-light dark:text-mute-dark italic">Chưa có version nào — click "Retrain toàn bộ" ở tab Tổng quan.</td></tr>
+            <tr x-show="!modelsList.length"><td colspan="7" class="text-center py-6 text-sm text-mute-light dark:text-mute-dark italic">Chưa có version nào — click "Retrain toàn bộ" ở tab Tổng quan.</td></tr>
           </tbody>
         </table>
       </div>
@@ -597,20 +605,94 @@
 
       <!-- Transactions ingest -->
       <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-card border border-gray-100 dark:border-zinc-700">
-        <h3 class="font-semibold mb-1">Nạp giao dịch (JSON batch ≤10k)</h3>
+        <h3 class="font-semibold mb-1">Nạp giao dịch (≤10k / lần)</h3>
         <p class="text-xs text-mute-light dark:text-mute-dark mb-3">POST /ingest/transactions</p>
-        <textarea x-model="txJson" rows="10"
-          class="w-full font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40"></textarea>
-        <div class="flex gap-2 mt-2">
-          <button @click="ingestTx()"
-            class="flex-1 px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition">
-            POST /ingest/transactions
+
+        <!-- Toolbar: CSV import/export + add row -->
+        <div class="flex gap-2 flex-wrap mb-3 text-xs">
+          <button @click="downloadSampleCSV()"
+            class="px-2.5 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition">
+            📥 Tải CSV mẫu
           </button>
-          <button @click="resetTxSample()"
-            class="px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 text-sm text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
-            Mẫu
+          <label class="px-2.5 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition cursor-pointer">
+            📤 Import CSV
+            <input type="file" accept=".csv,text/csv" class="hidden" @change="importCSV($event)" />
+          </label>
+          <button @click="addTxRow()"
+            class="px-2.5 py-1.5 rounded-md border border-brand-500 text-brand-700 dark:text-brand-100 hover:bg-brand-500/10 transition">
+            + Thêm dòng
           </button>
+          <button @click="clearTxRows()" :disabled="!txRows.length"
+            class="px-2.5 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark disabled:opacity-50 transition">
+            Xoá hết
+          </button>
+          <span class="ml-auto self-center text-mute-light dark:text-mute-dark"
+            x-text="`${txRows.length} giao dịch trong form`"></span>
         </div>
+
+        <!-- Form table -->
+        <div class="overflow-x-auto" x-show="txRows.length">
+          <table class="w-full text-xs">
+            <thead class="text-mute-light dark:text-mute-dark uppercase tracking-wide border-b border-gray-200 dark:border-zinc-700">
+              <tr>
+                <th class="text-left py-1.5 pr-2">t_dat <span class="text-red-500">*</span></th>
+                <th class="text-left py-1.5 px-1">customer_id <span class="text-red-500">*</span></th>
+                <th class="text-left py-1.5 px-1">article_id <span class="text-red-500">*</span></th>
+                <th class="text-right py-1.5 px-1">price</th>
+                <th class="text-left py-1.5 px-1">channel</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(r, i) in txRows" :key="i">
+                <tr class="border-b border-gray-100 dark:border-zinc-800">
+                  <td class="py-1 pr-2"><input type="date" x-model="r.t_dat"
+                    class="font-mono text-xs px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 w-full"></td>
+                  <td class="py-1 px-1"><input type="text" x-model="r.customer_id" placeholder="64-char hex hoặc demo_001"
+                    class="font-mono text-xs px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 w-full"></td>
+                  <td class="py-1 px-1"><input type="text" x-model="r.article_id" placeholder="vd: 0108775015"
+                    class="font-mono text-xs px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 w-full"></td>
+                  <td class="py-1 px-1"><input type="number" step="0.001" min="0" x-model.number="r.price" placeholder="0.025"
+                    class="font-mono text-xs px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 w-24 text-right"></td>
+                  <td class="py-1 px-1">
+                    <select x-model.number="r.sales_channel_id"
+                      class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800">
+                      <option :value="1">1 — Offline</option>
+                      <option :value="2">2 — Online</option>
+                    </select>
+                  </td>
+                  <td class="py-1 text-right">
+                    <button @click="txRows.splice(i, 1)" title="Xoá dòng"
+                      class="text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded px-1.5 py-0.5">×</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div x-show="!txRows.length"
+          class="p-6 text-center text-xs text-mute-light dark:text-mute-dark border-2 border-dashed border-gray-200 dark:border-zinc-700 rounded-md">
+          Chưa có giao dịch nào. Click <strong>+ Thêm dòng</strong> hoặc <strong>📤 Import CSV</strong>.
+        </div>
+
+        <button @click="ingestTx()" :disabled="!txRows.length"
+          class="w-full mt-3 px-4 py-2 rounded-md bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-medium transition">
+          POST <span x-text="txRows.length"></span> giao dịch
+        </button>
+
+        <details class="mt-3 text-xs">
+          <summary class="cursor-pointer text-mute-light dark:text-mute-dark hover:text-ink-light dark:hover:text-ink-dark">
+            Hoặc paste raw JSON (advanced)
+          </summary>
+          <textarea x-model="txJson" rows="6"
+            class="w-full mt-2 font-mono text-xs px-3 py-2 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"></textarea>
+          <button @click="loadTxFromJson()"
+            class="mt-2 px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-xs hover:bg-gray-100 dark:hover:bg-zinc-800">
+            Đẩy JSON này vào form
+          </button>
+        </details>
+
         <div x-show="txResult" class="mt-3 p-3 rounded-md bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-xs font-mono whitespace-pre-wrap" x-text="txResult"></div>
       </div>
     </div>
@@ -669,6 +751,7 @@ function app() {
     ingestResult: '',
     txJson: '',
     txResult: '',
+    txRows: [],   // form table rows — { t_dat, customer_id, article_id, price, sales_channel_id }
 
     // UI
     toast: '',
@@ -792,6 +875,17 @@ function app() {
         this.renderModelsCharts();
       } catch(e) {}
       finally { this.loading.models = false; }
+    },
+
+    async activateModel(version) {
+      try {
+        const r = await fetch(`/metrics/models/${this.layerFilter}/${version}/activate`, { method: 'POST' });
+        if (!r.ok) throw new Error((await r.json())?.detail || r.statusText);
+        this.toastShow(`Đã kích hoạt version ${version}`);
+        await Promise.all([this.loadSummary(), this.loadModels()]);
+      } catch(e) {
+        this.toastShow('Lỗi kích hoạt: ' + e.message);
+      }
     },
 
     // ---------- Charts ----------
@@ -1017,23 +1111,30 @@ function app() {
 
     async ingestTx() {
       this.txResult = '';
-
-      // Bước 1: parse JSON ở client trước, báo lỗi rõ nếu malformed
-      let body;
-      try {
-        body = JSON.parse(this.txJson);
-      } catch(e) {
-        this.txResult = `❌ JSON sai cú pháp:\n${e.message}\n\n`
-          + 'Mẹo: nếu vừa paste từ Word/Notes, chữ " có thể bị đổi thành dấu ngoặc kép cong (" hoặc ").\n'
-          + 'Click nút "Mẫu" để reset về JSON chuẩn.';
+      if (!this.txRows.length) {
+        this.txResult = '❌ Form rỗng — click "+ Thêm dòng" hoặc "📤 Import CSV" trước.';
         return;
       }
-      if (!body?.transactions?.length) {
-        this.txResult = '❌ JSON phải có key "transactions" là array, ví dụ:\n{ "transactions": [ {...} ] }';
+      // Validate per row trước khi POST
+      const invalid = [];
+      this.txRows.forEach((r, i) => {
+        if (!r.t_dat || !r.customer_id || !r.article_id || r.price == null || !r.sales_channel_id) {
+          invalid.push(i + 1);
+        }
+      });
+      if (invalid.length) {
+        this.txResult = `❌ Dòng ${invalid.join(', ')} thiếu trường bắt buộc (t_dat, customer_id, article_id, price, channel).`;
         return;
       }
 
-      // Bước 2: gửi POST, hiển thị response
+      const body = { transactions: this.txRows.map(r => ({
+        t_dat: r.t_dat,
+        customer_id: r.customer_id,
+        article_id: String(r.article_id),
+        price: Number(r.price),
+        sales_channel_id: Number(r.sales_channel_id),
+      })) };
+
       try {
         const r = await fetch('/ingest/transactions', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1049,6 +1150,77 @@ function app() {
         }
       } catch(e) {
         this.txResult = '❌ Lỗi mạng / kết nối: ' + e.message;
+      }
+    },
+
+    addTxRow() {
+      // Mặc định mỗi dòng mới: ngày hôm nay, channel=2 (online), 0.025
+      const today = new Date().toISOString().slice(0, 10);
+      this.txRows.push({
+        t_dat: today,
+        customer_id: '',
+        article_id: '',
+        price: 0.025,
+        sales_channel_id: 2,
+      });
+    },
+
+    clearTxRows() {
+      if (this.txRows.length && !confirm(`Xoá hết ${this.txRows.length} dòng?`)) return;
+      this.txRows = [];
+    },
+
+    downloadSampleCSV() {
+      const csv =
+        't_dat,customer_id,article_id,price,sales_channel_id\n' +
+        '2024-01-15,demo_001,0108775015,0.025,2\n' +
+        '2024-01-15,demo_002,0110065001,0.040,1\n' +
+        '2024-01-16,demo_001,0111565001,0.015,2\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'transactions_mau.csv'; a.click();
+      URL.revokeObjectURL(url);
+      this.toastShow('Đã tải transactions_mau.csv — chỉnh trong Excel rồi Import lại');
+    },
+
+    async importCSV(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) throw new Error('CSV phải có header + ít nhất 1 dòng data');
+        const header = lines[0].split(',').map(s => s.trim().toLowerCase());
+        const required = ['t_dat', 'customer_id', 'article_id', 'price', 'sales_channel_id'];
+        const missing = required.filter(c => !header.includes(c));
+        if (missing.length) throw new Error('Thiếu cột: ' + missing.join(', '));
+
+        const rows = lines.slice(1).filter(l => l.trim()).map(line => {
+          const cols = line.split(',').map(s => s.trim());
+          const obj = {};
+          header.forEach((h, i) => obj[h] = cols[i]);
+          obj.price = parseFloat(obj.price);
+          obj.sales_channel_id = parseInt(obj.sales_channel_id, 10);
+          return obj;
+        });
+        this.txRows = rows;
+        event.target.value = '';  // reset input
+        this.toastShow(`Đã import ${rows.length} dòng — review rồi POST`);
+      } catch(e) {
+        this.txResult = '❌ Import CSV thất bại: ' + e.message;
+        event.target.value = '';
+      }
+    },
+
+    loadTxFromJson() {
+      try {
+        const parsed = JSON.parse(this.txJson);
+        if (!parsed?.transactions?.length) throw new Error('Thiếu key "transactions" hoặc rỗng');
+        this.txRows = parsed.transactions;
+        this.toastShow(`Đã load ${this.txRows.length} dòng từ JSON vào form`);
+      } catch(e) {
+        this.txResult = '❌ JSON sai: ' + e.message;
       }
     },
 

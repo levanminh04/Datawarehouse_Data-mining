@@ -1,0 +1,81 @@
+Đang truy vấn Features (RFM & Style) từ Database (Dữ liệu trước cut-off)...
+Hoàn thành! Số khách hàng: 1356132
+Đang truy vấn Labels (Khách có mua trong 7 ngày cuối)...
+Hoàn thành! Số khách hàng mua trong 7 ngày cuối: 75484
+
+=== Phân phối Target (Label) ===
+will_buy
+0    94.887445
+1     5.112555
+Name: proportion, dtype: float64
+
+Dữ liệu huấn luyện: (240000, 9), Dữ liệu test: (60000, 9)
+
+[1] Đang huấn luyện Logistic Regression (Baseline)...
+
+Báo cáo phân loại chi tiết (Logistic Regression):
+              precision    recall  f1-score   support
+
+           0       0.98      0.66      0.79     56922
+           1       0.11      0.80      0.20      3078
+
+    accuracy                           0.66     60000
+   macro avg       0.55      0.73      0.49     60000
+weighted avg       0.94      0.66      0.76     60000
+
+
+[2] Đang huấn luyện Decision Tree...
+
+Báo cáo phân loại chi tiết (Decision Tree):
+              precision    recall  f1-score   support
+
+           0       0.98      0.66      0.79     56922
+           1       0.11      0.78      0.19      3078
+
+    accuracy                           0.67     60000
+   macro avg       0.55      0.72      0.49     60000
+weighted avg       0.94      0.67      0.76     60000
+
+Đã lưu hình cây quyết định: decision_tree_logic.png (Đã fix lỗi đè chữ)
+
+[3] Đang huấn luyện Random Forest...
+
+[4] Đang huấn luyện XGBoost...
+
+Báo cáo phân loại chi tiết (XGBoost):
+              precision    recall  f1-score   support
+
+           0       0.98      0.73      0.84     56922
+           1       0.12      0.70      0.21      3078
+
+    accuracy                           0.73     60000
+   macro avg       0.55      0.72      0.52     60000
+weighted avg       0.93      0.73      0.80     60000
+
+
+=== BẢNG SO SÁNH HIỆU NĂNG CÁC MÔ HÌNH ===
+              Model  AUC Train  AUC Test  Recall Test  Generalization Gap
+Logistic Regression   0.800006  0.793719     0.798246            0.006287
+      Decision Tree   0.791476  0.780054     0.775179            0.011422
+      Random Forest   0.820918  0.798666     0.748863            0.022252
+            XGBoost   0.875039  0.784450     0.701754            0.090589
+Đã lưu biểu đồ so sánh: model_comparison.png
+
+=== BÁO CÁO PHÂN LOẠI CHI TIẾT (RANDOM FOREST) ===
+Lưu ý: Nhãn 0 = Không mua, Nhãn 1 = Có mua
+              precision    recall  f1-score   support
+
+           0       0.98      0.71      0.83     56922
+           1       0.12      0.75      0.21      3078
+
+    accuracy                           0.71     60000
+   macro avg       0.55      0.73      0.52     60000
+weighted avg       0.94      0.71      0.79     60000
+
+Đã lưu biểu đồ: confusion_matrix_rf.png
+Đã lưu biểu đồ: feature_importance.png
+
+[5] Đang lưu các mô hình (Model Artifacts)...
+Đã lưu thành công: dt_model.pkl, rf_model.pkl và xgb_model.pkl
+
+=== GIAI ĐOẠN 3 HOÀN TẤT ===

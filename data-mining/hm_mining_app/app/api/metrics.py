@@ -54,6 +54,15 @@ def models_history(layer: str, limit: int = 20) -> list[dict]:
     return registry.list_versions(layer, limit=limit)
 
 
+@router.post("/models/{layer}/{version}/activate")
+def activate_model_version(layer: str, version: str) -> dict:
+    """Chuyển version này thành active, các version khác cùng layer thành inactive."""
+    try:
+        return registry.set_active_version(layer, version)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
 @router.get("/cluster-distribution")
 def cluster_distribution() -> list[dict]:
     with get_session() as s:

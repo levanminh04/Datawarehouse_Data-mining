@@ -115,6 +115,34 @@ def load_active_model(layer: str) -> tuple[Any, dict] | None:
     return artifact, dict(row)
 
 
+def set_active_version(layer: str, version: str) -> dict:
+    """Đánh dấu một version cụ thể là active, các version khác cùng layer thành inactive.
+
+    Trả về registry row của version vừa kích hoạt. Raise ValueError nếu không tìm thấy.
+    """
+    if layer not in VALID_LAYERS:
+        raise ValueError(f"layer phải thuộc {VALID_LAYERS}, nhận {layer!r}")
+
+    with get_session() as s:
+        target = s.execute(
+            text("SELECT version, artifact_path FROM model_registry WHERE layer = :layer AND version = :version"),
+            {"layer": layer, "version": version},
+        ).mappings().first()
+        if target is None:
+            raise ValueError(f"Không có version {version!r} cho layer {layer!r}")
+
+        s.execute(
+            text("UPDATE model_registry SET is_active = FALSE WHERE layer = :layer AND is_active = TRUE"),
+            {"layer": layer},
+        )
+        s.execute(
+            text("UPDATE model_registry SET is_active = TRUE  WHERE layer = :layer AND version = :version"),
+            {"layer": layer, "version": version},
+        )
+
+    return {"layer": layer, "version": version, "artifact_path": target["artifact_path"]}
+
+
 def list_versions(layer: str, limit: int = 20) -> list[dict]:
     with get_session() as s:
         rows = s.execute(

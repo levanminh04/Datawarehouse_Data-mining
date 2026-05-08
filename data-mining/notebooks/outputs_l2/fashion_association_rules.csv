@@ -1,0 +1,23 @@
+cluster_id,Style_Cluster,antecedents,consequents,support,confidence,lift
+0,GenZ Trend,"['Garment Lower body', 'Garment Upper body', 'Swimwear']",['Garment Full body'],0.016859504132231404,0.45320796460176993,1.356076638020248
+0,GenZ Trend,['Garment Full body'],"['Garment Lower body', 'Garment Upper body', 'Swimwear']",0.016859504132231404,0.050446553167736524,1.3560766380202478
+0,GenZ Trend,"['Garment Upper body', 'Swimwear']","['Garment Full body', 'Garment Lower body']",0.016859504132231404,0.2564097214978617,1.3475766659335948
+0,GenZ Trend,"['Garment Full body', 'Garment Lower body']","['Garment Upper body', 'Swimwear']",0.016859504132231404,0.08860613488087085,1.3475766659335948
+0,GenZ Trend,['Underwear'],['Socks & Tights'],0.014855457631768458,0.08363515611123554,1.336433809350404
+1,Classic Online,['Unknown'],['Underwear'],0.01074652826733195,0.5678473402169651,2.5324707722047
+1,Classic Online,['Underwear'],['Unknown'],0.01074652826733195,0.04792708675766849,2.5324707722047
+1,Classic Online,"['Garment Upper body', 'Shoes']","['Accessories', 'Garment Lower body']",0.011973897260162155,0.1425970766538822,1.670880714603286
+1,Classic Online,"['Accessories', 'Garment Lower body']","['Garment Upper body', 'Shoes']",0.011973897260162155,0.14030409655036488,1.6708807146032858
+1,Classic Online,['Nightwear'],['Underwear'],0.020998843868868907,0.3615156625274669,1.6122781321740802
+2,Family/Moms,"['Accessories', 'Garment Full body']","['Garment Upper body', 'Shoes']",0.01262972928449838,0.18935236004390782,1.7928747809841967
+2,Family/Moms,"['Garment Upper body', 'Shoes']","['Accessories', 'Garment Full body']",0.01262972928449838,0.1195840554592721,1.7928747809841967
+2,Family/Moms,"['Accessories', 'Garment Full body', 'Garment Upper body']",['Shoes'],0.01262972928449838,0.2569832402234637,1.749067567351251
+2,Family/Moms,['Shoes'],"['Accessories', 'Garment Full body', 'Garment Upper body']",0.01262972928449838,0.08595988538681949,1.749067567351251
+2,Family/Moms,"['Garment Full body', 'Socks & Tights']","['Garment Upper body', 'Shoes']",0.010652902092142112,0.17830882352941177,1.6883095244163524
+3,Menswear,['Nightwear'],['Underwear'],0.012534772581373784,0.30379163305289847,1.3108018686211844
+3,Menswear,['Underwear'],['Nightwear'],0.012534772581373784,0.05408510812918051,1.3108018686211844
+3,Menswear,['Shoes'],['Garment Full body'],0.015159656672769205,0.22627581801405353,1.299382134547538
+3,Menswear,['Garment Full body'],['Shoes'],0.015159656672769205,0.08705387619125639,1.299382134547538
+3,Menswear,['Swimwear'],"['Garment Full body', 'Garment Lower body']",0.010000237761240163,0.12071637678663683,1.279667832258584
+4,Classic Offline,['Underwear'],['Nightwear'],0.015669302134271743,0.06793854104331216,1.6643862427434204
+4,Classic Offline,['Nightwear'],['Underwear'],0.015669302134271743,0.3838729902816964,1.6643862427434202

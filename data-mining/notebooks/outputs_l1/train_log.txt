@@ -1,0 +1,33 @@
+[1/6] Truy vấn Fashion DNA (HAVING COUNT(*) >= 3)…
+      → 1,093,194 khách hàng có ≥3 giao dịch.
+[2/6] Standardize + tuning k với Elbow / Silhouette / Davies-Bouldin…
+      k=2 | inertia=187077.8 | silhouette=0.4532 | DB=0.9753
+      k=3 | inertia=158717.0 | silhouette=0.4540 | DB=0.9346
+      k=4 | inertia=126992.4 | silhouette=0.2639 | DB=1.3278
+      k=5 | inertia=112775.8 | silhouette=0.2238 | DB=1.3651
+      k=6 | inertia=94958.1 | silhouette=0.2454 | DB=1.1123
+      k=7 | inertia=78531.8 | silhouette=0.2492 | DB=1.0828
+      → đã lưu /Users/mac/Documents/mining/Datawarehouse_Data-mining/data-mining/notebooks/outputs_l1/k_evaluation_metrics.png
+[3/6] Fit KMeans cuối cùng (k=5) trên 1,093,194 dòng…
+
+=== PROFILE CÁC CỤM ===
+   cluster  n_customers   age  total_items  avg_price  pct_ladieswear  pct_divided  pct_menswear  pct_baby  pct_sport  pct_online  pct_of_base     cluster_name
+0        0       222836  27.0         12.0   0.024988            34.9         58.2           2.8       2.0        2.1        74.1         20.4       GenZ Trend
+1        1       465399  31.0         16.0   0.030734            79.3         14.1           2.3       1.7        2.6        91.3         42.6   Classic Online
+2        2        37467  40.0          7.0   0.021036            11.2          4.1           1.6      81.8        1.3        58.8          3.4      Family/Moms
+3        3        84608  35.0          9.0   0.028688            26.1          9.5          40.2       2.3       21.9        58.1          7.7         Menswear
+4        4       282884  32.0         16.0   0.024091            75.8         14.0           4.2       2.7        3.3        16.7         25.9  Classic Offline
+      → đã lưu /Users/mac/Documents/mining/Datawarehouse_Data-mining/data-mining/notebooks/outputs_l1/customer_clusters.csv
+      → đã lưu /Users/mac/Documents/mining/Datawarehouse_Data-mining/data-mining/notebooks/outputs_l1/cluster_distribution.png
+[4/6] Predict cluster cho toàn bộ KH (full coverage 1.36M)…
+      → extract_customer_features: 1,362,283 dòng.
+[5/6] TRUNCATE + COPY customer_clusters (atomic)…
+      → đã COPY 1,362,283 dòng (model_version=20260505_102357).
+[6/6] Lưu artifact + đăng ký vào model_registry…
+  layer: L1_KMEANS
+  version: 20260505_102416
+  artifact_path: /Users/mac/Documents/mining/Datawarehouse_Data-mining/data-mining/hm_mining_app/models_store/L1_KMEANS/v20260505_102416.joblib
+  parent_version: None
+  is_incremental: False
+
+=== L1 TRAINING DONE ===
